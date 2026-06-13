@@ -342,6 +342,19 @@ export default function InboxPage() {
   }, []);
 
   /**
+   * Periodic resync safety net — refreshes active thread and list every 5 seconds
+   * when the page is visible, acting as a fallback for slow/blocked websocket events.
+   */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        setResyncToken((n) => n + 1);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /**
    * Manual refresh trigger for the thread-header refresh button.
    * Bumps the same resyncToken the reconnect / visibility paths use,
    * so it goes through the existing dedupe & refetch plumbing — no
