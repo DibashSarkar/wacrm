@@ -217,14 +217,37 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
   };
 
   const handleMediaUpload = async (file: File) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Unsupported image type. Use PNG, JPG, or JPEG.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image is too large. Maximum 5 MB.');
-      return;
+    const headerType = selectedTmpl?.header_type || 'image';
+    if (headerType === 'image') {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Unsupported image type. Use PNG, JPG, or JPEG.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image is too large. Maximum 5 MB.');
+        return;
+      }
+    } else if (headerType === 'video') {
+      const allowedTypes = ['video/mp4'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Unsupported video type. Use MP4.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Video is too large. Maximum 10 MB.');
+        return;
+      }
+    } else if (headerType === 'document') {
+      const allowedTypes = ['application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Unsupported document type. Use PDF.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Document is too large. Maximum 10 MB.');
+        return;
+      }
     }
     setMediaUploading(true);
     try {
@@ -256,7 +279,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
       const { data: { publicUrl } } = supabase.storage.from('flow-media').getPublicUrl(path);
       setMediaUploadUrl(publicUrl);
       setMediaFileName(file.name);
-      toast.success('Image uploaded successfully.');
+      toast.success('File uploaded successfully.');
     } catch (err: any) {
       toast.error(err.message || 'Upload failed.');
     } finally {
@@ -304,7 +327,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
             mappings: {
               body: bodyMappings.map((m) => ({ type: m.type, value: m.value })),
               headerText: headerMapping ? { type: headerMapping.type, value: headerMapping.value } : null,
-              headerMedia: selectedTmpl?.header_type === 'image' ? {
+              headerMedia: ['image', 'video', 'document'].includes(selectedTmpl?.header_type) ? {
                 type: mediaSourceType,
                 filename: mediaFileName || null,
                 value: mediaSourceType === 'payload'
@@ -594,7 +617,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
               </div>
 
               {selectedTmpl && (() => {
-                const hasMediaHeader = selectedTmpl.header_type === 'image';
+                const hasMediaHeader = ['image', 'video', 'document'].includes(selectedTmpl.header_type);
                 const hasButtons = !!(selectedTmpl.buttons && selectedTmpl.buttons.length > 0);
 
                 let previewImageUrl = '';
@@ -743,7 +766,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                               ? 'border-primary text-primary'
                               : 'border-transparent text-slate-400 hover:text-white'
                           }`}
-                          title={!hasMediaHeader ? "Template does not have an image header" : "Configure template media"}
+                          title={!hasMediaHeader ? "Template does not have a media header" : "Configure template media"}
                         >
                           Media
                         </button>
@@ -915,7 +938,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                       {activeSubTab === 'media' && hasMediaHeader && (
                         <div className="space-y-4">
                           <p className="text-xs text-slate-400 leading-relaxed">
-                            You can personalise this template with new images or we will use the existing ones you uploaded as sample by default.
+                            You can personalise this template with new media (images, videos, or PDFs) or we will use the existing ones you uploaded as sample by default.
                           </p>
 
                           <div className="space-y-1.5">
@@ -929,7 +952,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="block text-xs font-semibold text-slate-400">Image Source</label>
+                            <label className="block text-xs font-semibold text-slate-400">Media Source</label>
                             <select
                               value={mediaSourceType}
                               onChange={(e) => setMediaSourceType(e.target.value as any)}
@@ -937,7 +960,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                             >
                               <option value="static">Paste a link (Static URL)</option>
                               <option value="payload">Pick variable (Payload Field)</option>
-                              <option value="upload">Upload image file</option>
+                              <option value="upload">Upload media file</option>
                             </select>
                           </div>
 
@@ -947,7 +970,13 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                               <Input
                                 value={mediaLink}
                                 onChange={(e) => setMediaLink(e.target.value)}
-                                placeholder="https://example.com/image.jpg"
+                                placeholder={
+                                  selectedTmpl.header_type === 'video'
+                                    ? "https://example.com/video.mp4"
+                                    : selectedTmpl.header_type === 'document'
+                                    ? "https://example.com/document.pdf"
+                                    : "https://example.com/image.jpg"
+                                }
                                 className="bg-slate-900 text-white border-slate-800 py-1 h-8 text-xs focus:border-primary"
                               />
                             </div>
@@ -1006,7 +1035,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                                   ) : (
                                     <>
                                       <Upload className="h-3.5 w-3.5" />
-                                      Click to upload image
+                                      {`Click to upload ${selectedTmpl.header_type}`}
                                     </>
                                   )}
                                 </button>
@@ -1014,7 +1043,13 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                               <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg"
+                                accept={
+                                  selectedTmpl.header_type === 'video'
+                                    ? "video/mp4"
+                                    : selectedTmpl.header_type === 'document'
+                                    ? "application/pdf"
+                                    : "image/png,image/jpeg,image/jpg"
+                                }
                                 className="hidden"
                                 onChange={(e) => {
                                   const f = e.target.files?.[0];
@@ -1023,7 +1058,11 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                                 }}
                               />
                               <p className="text-[10px] text-slate-500 font-medium leading-normal">
-                                (Allowed file types: .jpeg, .jpg, .png. Max file size: 5 MB)
+                                {selectedTmpl.header_type === 'video'
+                                  ? "(Allowed file types: .mp4. Max file size: 10 MB)"
+                                  : selectedTmpl.header_type === 'document'
+                                  ? "(Allowed file types: .pdf. Max file size: 10 MB)"
+                                  : "(Allowed file types: .jpeg, .jpg, .png. Max file size: 5 MB)"}
                               </p>
                             </div>
                           )}
