@@ -94,26 +94,27 @@ function buildHeaderComponent(
     };
   }
 
-  // image / video / document — Meta requires the media component on
-  // every send. Prefer the caller's explicit override; fall back to
-  // the template's stored sample.
-  const link = params.headerMediaUrl ?? template.header_media_url;
-  const id = params.headerMediaId ?? template.header_handle;
-  if (!link && !id) {
-    throw new Error(
-      `${headerType} header requires a media link or id at send time — set header_media_url on the template or pass headerMediaUrl/headerMediaId.`,
-    );
-  }
-  
+  // Prefer explicit overrides from the caller
   let mediaPayload: { link?: string; id?: string | number } = {};
-  if (id) {
+  
+  if (params.headerMediaId) {
+    const id = params.headerMediaId;
     if (typeof id === 'string' && /^\d+$/.test(id)) {
       mediaPayload = { id: parseInt(id, 10) };
     } else {
       mediaPayload = { id };
     }
+  } else if (params.headerMediaUrl) {
+    mediaPayload = { link: params.headerMediaUrl };
+  } else if (template.header_handle && /^\d+$/.test(template.header_handle)) {
+    // Only use template header_handle if it is a numeric ID
+    mediaPayload = { id: parseInt(template.header_handle, 10) };
+  } else if (template.header_media_url) {
+    mediaPayload = { link: template.header_media_url };
   } else {
-    mediaPayload = { link };
+    throw new Error(
+      `${headerType} header requires a media link or id at send time — set header_media_url on the template or pass headerMediaUrl/headerMediaId.`,
+    );
   }
 
   return {
