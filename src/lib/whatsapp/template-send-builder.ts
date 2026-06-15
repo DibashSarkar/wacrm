@@ -109,12 +109,19 @@ function buildHeaderComponent(
   } else if (template.header_handle && /^\d+$/.test(template.header_handle)) {
     // Only use template header_handle if it is a numeric ID
     mediaPayload = { id: parseInt(template.header_handle, 10) };
-  } else if (template.header_media_url) {
-    mediaPayload = { link: template.header_media_url };
   } else {
-    throw new Error(
-      `${headerType} header requires a media link or id at send time — set header_media_url on the template or pass headerMediaUrl/headerMediaId.`,
-    );
+    // Fallback: check if either header_handle or header_media_url contains a valid URL
+    const fallbackLink = (template.header_handle && template.header_handle.startsWith('http'))
+      ? template.header_handle
+      : template.header_media_url;
+
+    if (fallbackLink) {
+      mediaPayload = { link: fallbackLink };
+    } else {
+      throw new Error(
+        `${headerType} header requires a media link or id at send time — set header_media_url on the template or pass headerMediaUrl/headerMediaId.`,
+      );
+    }
   }
 
   return {
