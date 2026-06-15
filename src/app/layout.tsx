@@ -4,7 +4,7 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
-import { DEFAULT_THEME, STORAGE_KEY, THEME_IDS, STORAGE_MODE_KEY } from "@/lib/themes";
+import { DEFAULT_THEME, STORAGE_KEY, THEME_IDS } from "@/lib/themes";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     default: "wacrm",
     template: "%s — wacrm",
   },
-  description: "Self-hostable CRM template for WhatsApp.",
+  description: "Self-hostable Journey Tank WP CRM.",
   robots: {
     index: false,
     follow: false,
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#020617",
-  colorScheme: "dark light",
+  colorScheme: "dark",
 };
 
 // Inline boot script — runs before React hydrates so the user's
@@ -54,14 +54,6 @@ const THEME_BOOT_SCRIPT = `
     var saved = localStorage.getItem(STORAGE_KEY);
     var theme = ALLOWED.indexOf(saved) !== -1 ? saved : DEFAULT;
     document.documentElement.dataset.theme = theme;
-
-    var MODE_KEY = ${JSON.stringify(STORAGE_MODE_KEY)};
-    var savedMode = localStorage.getItem(MODE_KEY);
-    if (savedMode === "light") {
-      document.documentElement.classList.add("light");
-    } else {
-      document.documentElement.classList.remove("light");
-    }
   } catch (_e) {
     document.documentElement.dataset.theme = ${JSON.stringify(DEFAULT_THEME)};
   }

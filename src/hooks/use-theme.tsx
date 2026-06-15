@@ -14,49 +14,48 @@ import {
   STORAGE_KEY,
   isThemeId,
   type ThemeId,
-  STORAGE_MODE_KEY,
-  DEFAULT_MODE,
-  isThemeMode,
-  type ThemeMode,
 } from "@/lib/themes";
+
+/**
+ * ThemeProvider — wraps the whole app, owns the active theme state.
+ *
+ * The boot script in `src/app/layout.tsx` has already applied
+ * `document.documentElement.dataset.theme` before React hydrates, so
+ * by the time this Provider mounts the page is already painted in
+ * the right colors. We just have to read what's there and keep it
+ * in sync going forward.
+ *
+ * Persistence is localStorage only (device-scoped). A future
+ * follow-up could mirror to `profiles.preferences` for cross-device
+ * sync, but a per-device choice is also defensible — your phone may
+ * deserve a different theme than your laptop.
+ */
 
 interface ThemeContextValue {
   theme: ThemeId;
   setTheme: (next: ThemeId) => void;
-  mode: ThemeMode;
-  setMode: (next: ThemeMode) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readInitialTheme(): ThemeId {
   if (typeof window === "undefined") return DEFAULT_THEME;
+  // Whatever the boot script applied is the truth. Fall back to
+  // localStorage / default if for some reason the attribute is missing
+  // (e.g. someone bypassed the boot script in a custom layout).
   const fromAttr = document.documentElement.dataset.theme;
   if (isThemeId(fromAttr)) return fromAttr;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (isThemeId(stored)) return stored;
   } catch {
-    // ignore
+    // localStorage can throw in private-browsing / sandboxed contexts.
   }
   return DEFAULT_THEME;
 }
 
-function readInitialMode(): ThemeMode {
-  if (typeof window === "undefined") return DEFAULT_MODE;
-  const fromClass = document.documentElement.classList.contains("light") ? "light" : "dark";
-  try {
-    const stored = localStorage.getItem(STORAGE_MODE_KEY);
-    if (isThemeMode(stored)) return stored;
-  } catch {
-    // ignore
-  }
-  return fromClass;
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(readInitialTheme);
-  const [mode, setModeState] = useState<ThemeMode>(readInitialMode);
 
   const setTheme = useCallback((next: ThemeId) => {
     setThemeState(next);
@@ -66,52 +65,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // ignore
+      // Same private-browsing edge case as above; the in-memory state
+      // still updates so the current tab works for the session.
     }
   }, []);
 
-  const setMode = useCallback((next: ThemeMode) => {
-    setModeState(next);
-    if (typeof document !== "undefined") {
-      if (next === "light") {
-        document.documentElement.classList.add("light");
-      } else {
-        document.documentElement.classList.remove("light");
-      }
-    }
-    try {
-      localStorage.setItem(STORAGE_MODE_KEY, next);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  // Sync from other tabs
+  // Sync from other tabs — if you change your theme in tab A, tab B
+  // catches up without a refresh.
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) {
-        if (isThemeId(e.newValue) && e.newValue !== theme) {
-          setThemeState(e.newValue);
-          document.documentElement.dataset.theme = e.newValue;
-        }
-      }
-      if (e.key === STORAGE_MODE_KEY) {
-        if (isThemeMode(e.newValue) && e.newValue !== mode) {
-          setModeState(e.newValue);
-          if (e.newValue === "light") {
-            document.documentElement.classList.add("light");
-          } else {
-            document.documentElement.classList.remove("light");
-          }
-        }
+      if (e.key !== STORAGE_KEY) return;
+      if (isThemeId(e.newValue) && e.newValue !== theme) {
+        setThemeState(e.newValue);
+        document.documentElement.dataset.theme = e.newValue;
       }
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [theme, mode]);
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, mode, setMode }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -120,13 +94,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
+    // Fallback for components rendered outside the provider — return a
+    // no-op setter so callers don't crash. The boot script still
+    // applied the right CSS attribute, so visually the page is fine.
     return {
       theme: DEFAULT_THEME,
       setTheme: () => {},
-      mode: DEFAULT_MODE,
-      setMode: () => {},
     };
   }
   return ctx;
 }
-

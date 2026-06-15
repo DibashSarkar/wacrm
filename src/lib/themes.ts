@@ -79,12 +79,3 @@ export function isThemeId(value: unknown): value is ThemeId {
     (THEME_IDS as ReadonlyArray<string>).includes(value)
   );
 }
-
-export const STORAGE_MODE_KEY = "wacrm.mode";
-export type ThemeMode = "light" | "dark";
-export const DEFAULT_MODE: ThemeMode = "dark";
-
-export function isThemeMode(value: unknown): value is ThemeMode {
-  return value === "light" || value === "dark";
-}
-
