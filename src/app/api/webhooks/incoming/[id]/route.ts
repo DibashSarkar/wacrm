@@ -183,7 +183,11 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
       throw new Error(`Recipient phone path "${phonePath}" resolved to empty value.`);
     }
 
-    const sanitizedPhone = sanitizePhoneForMeta(String(rawPhone));
+    let sanitizedPhone = sanitizePhoneForMeta(String(rawPhone));
+    if (sanitizedPhone.length === 10) {
+      sanitizedPhone = '91' + sanitizedPhone;
+    }
+    
     if (!isValidE164(sanitizedPhone)) {
       throw new Error(`Sanitized phone number "${sanitizedPhone}" is not valid E164 format.`);
     }
