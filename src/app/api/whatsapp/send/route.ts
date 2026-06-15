@@ -313,7 +313,7 @@ export async function POST(request: Request) {
         sender_type: 'agent',
         content_type: message_type,
         content_text: content_text || null,
-        media_url: media_url || null,
+        media_url: media_url || template_message_params?.headerMediaUrl || null,
         template_name: template_name || null,
         message_id: waMessageId,
         status: 'sent',

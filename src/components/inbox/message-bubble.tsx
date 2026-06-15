@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import type { Message, MessageReaction } from "@/types";
+import type { Message, MessageReaction, MessageTemplate } from "@/types";
 import {
   Clock,
   Check,
@@ -13,6 +13,7 @@ import {
   LayoutTemplate,
   ImageOff,
   CornerDownLeft,
+  Video,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ReplyQuote } from "./reply-quote";
@@ -25,6 +26,7 @@ interface MessageBubbleProps {
   reactions?: MessageReaction[];
   currentUserId?: string;
   onToggleReaction?: (emoji: string) => void;
+  templates?: Map<string, MessageTemplate>;
 }
 
 function StatusIcon({ status }: { status: Message["status"] }) {
@@ -116,7 +118,15 @@ function MediaImage({ url, alt }: { url: string; alt: string }) {
   );
 }
 
-function MessageContent({ message }: { message: Message }) {
+function MessageContent({
+  message,
+  templates,
+}: {
+  message: Message;
+  templates?: Map<string, MessageTemplate>;
+}) {
+  const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
+
   switch (message.content_type) {
     case "text":
       return (
@@ -190,20 +200,130 @@ function MessageContent({ message }: { message: Message }) {
         </a>
       );
 
-    case "template":
+    case "template": {
+      const template = message.template_name && templates ? templates.get(message.template_name) : null;
+      if (!template) {
+        return (
+          <div>
+            <span className="mb-1 inline-flex items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              <LayoutTemplate className="h-3 w-3" />
+              Template
+            </span>
+            {message.content_text && (
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                {message.content_text}
+              </p>
+            )}
+          </div>
+        );
+      }
+
       return (
-        <div>
-          <span className="mb-1 inline-flex items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+        <div className="flex flex-col gap-2 max-w-[280px]">
+          <span className="inline-flex w-fit items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
             <LayoutTemplate className="h-3 w-3" />
             Template
           </span>
-          {message.content_text && (
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-              {message.content_text}
-            </p>
+
+          <div
+            className={cn(
+              "rounded-lg border overflow-hidden w-full",
+              isAgent
+                ? "border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground"
+                : "border-slate-700/40 bg-slate-800/40 text-slate-100"
+            )}
+          >
+            {/* Header Media */}
+            {template.header_type === "image" && (
+              <div className="aspect-video bg-slate-700/30 flex items-center justify-center relative overflow-hidden">
+                {message.media_url || template.header_media_url ? (
+                  <MediaImage
+                    url={message.media_url || template.header_media_url || ""}
+                    alt="Template Header"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-slate-500">
+                    <ImageOff className="h-5 w-5" />
+                    <span className="text-[10px]">No image header</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {template.header_type === "video" && (
+              <div className="aspect-video bg-slate-700/30 flex items-center justify-center">
+                {message.media_url || template.header_media_url ? (
+                  <video
+                    src={message.media_url || template.header_media_url}
+                    controls
+                    className="w-full h-full max-h-64"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-slate-500">
+                    <Video className="h-5 w-5" />
+                    <span className="text-[10px]">No video header</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {template.header_type === "document" && (
+              <div className="px-3 py-2 bg-slate-700/20 flex items-center gap-2 border-b border-slate-700/40">
+                <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                {message.media_url || template.header_media_url ? (
+                  <a
+                    href={message.media_url || template.header_media_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-primary hover:underline truncate"
+                  >
+                    View Document
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-slate-500">No document header</span>
+                )}
+              </div>
+            )}
+
+            {/* Text Header */}
+            {template.header_type === "text" && template.header_content && (
+              <div className="px-3 pt-2 pb-1 text-xs font-bold border-b border-slate-700/20">
+                {template.header_content}
+              </div>
+            )}
+
+            {/* Body */}
+            <div className="px-3 py-2 text-sm whitespace-pre-wrap break-words">
+              {message.content_text || template.body_text}
+            </div>
+
+            {/* Footer */}
+            {template.footer_text && (
+              <div className="px-3 pb-2 text-[10px] text-slate-400 italic">
+                {template.footer_text}
+              </div>
+            )}
+          </div>
+
+          {/* Buttons */}
+          {template.buttons && template.buttons.length > 0 && (
+            <div className="flex flex-col gap-1 w-full mt-0.5">
+              {template.buttons.map((btn, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-center text-xs font-semibold select-none",
+                    isAgent
+                      ? "bg-primary-foreground/10 hover:bg-primary-foreground/20 border-primary-foreground/20 text-white"
+                      : "bg-slate-700/50 hover:bg-slate-700 border-slate-600/50 text-primary"
+                  )}
+                >
+                  {btn.text}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       );
+    }
 
     case "location":
       return (
@@ -247,6 +367,7 @@ export function MessageBubble({
   reactions,
   currentUserId,
   onToggleReaction,
+  templates,
 }: MessageBubbleProps) {
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
@@ -271,7 +392,7 @@ export function MessageBubble({
         {reply && (
           <ReplyQuote authorLabel={reply.authorLabel} preview={reply.preview} />
         )}
-        <MessageContent message={message} />
+        <MessageContent message={message} templates={templates} />
         <div
           className={cn(
             "mt-1 flex items-center gap-1",
