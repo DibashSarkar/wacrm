@@ -15,7 +15,7 @@ export async function PUT(
     if (!profile?.account_id) return NextResponse.json({ error: 'No account linked' }, { status: 403 });
 
     const body = await request.json();
-    const { name, recipient_name_field, recipient_phone_field, conditions, actions, is_active, create_contacts } = body;
+    const { name, recipient_name_field, recipient_phone_field, recipient_email_field, conditions, actions, is_active, create_contacts } = body;
 
     if (!name) return NextResponse.json({ error: 'Workflow Name is required' }, { status: 400 });
     if (!recipient_phone_field) return NextResponse.json({ error: 'Recipient phone mapping is required' }, { status: 400 });
@@ -27,6 +27,7 @@ export async function PUT(
         name,
         recipient_name_field,
         recipient_phone_field,
+        recipient_email_field: recipient_email_field || null,
         conditions: conditions || { matchType: 'all', rules: [] },
         actions: actions || [],
         is_active: is_active !== false,

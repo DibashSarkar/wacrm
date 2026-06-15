@@ -22,6 +22,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
   const [isActive, setIsActive] = useState(true);
   const [recipientNameField, setRecipientNameField] = useState('');
   const [recipientPhoneField, setRecipientPhoneField] = useState('');
+  const [recipientEmailField, setRecipientEmailField] = useState('');
   const [createContacts, setCreateContacts] = useState(true);
   
   // Conditions
@@ -71,6 +72,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
       setIsActive(workflow.is_active);
       setRecipientNameField(workflow.recipient_name_field);
       setRecipientPhoneField(workflow.recipient_phone_field);
+      setRecipientEmailField(workflow.recipient_email_field || '');
       setCreateContacts(workflow.create_contacts !== false);
 
       const condsObj = workflow.conditions || {};
@@ -314,6 +316,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
         is_active: isActive,
         recipient_name_field: recipientNameField,
         recipient_phone_field: recipientPhoneField,
+        recipient_email_field: recipientEmailField || null,
         create_contacts: createContacts,
         conditions: {
           matchType,
@@ -467,7 +470,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-400">Recipient Name Mapping *</label>
                 <select
@@ -490,6 +493,20 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                   className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
                 >
                   <option value="">Select payload path...</option>
+                  {availablePaths.map((path) => (
+                    <option key={path} value={path}>{path}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400">Recipient Email Mapping</label>
+                <select
+                  value={recipientEmailField}
+                  onChange={(e) => setRecipientEmailField(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                >
+                  <option value="">Select payload path (optional)...</option>
                   {availablePaths.map((path) => (
                     <option key={path} value={path}>{path}</option>
                   ))}

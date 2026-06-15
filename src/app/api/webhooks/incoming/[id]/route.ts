@@ -197,6 +197,13 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
     const rawName = getNestedValue(payload, namePath);
     customerName = rawName ? String(rawName) : sanitizedPhone;
 
+    const emailPath = workflow.recipient_email_field;
+    let customerEmail: string | null = null;
+    if (emailPath) {
+      const rawEmail = getNestedValue(payload, emailPath);
+      customerEmail = rawEmail ? String(rawEmail).trim() : null;
+    }
+
     // 3. Resolve WhatsApp configuration
     const configId = integration.whatsapp_config_id;
     if (!configId) {
@@ -283,7 +290,8 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
         workflow.account_id,
         adminUserId,
         sanitizedPhone,
-        customerName
+        customerName,
+        customerEmail
       );
       if (contactOutcome) {
         contact = contactOutcome.contact;
@@ -298,8 +306,17 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
       const existingContact = await findExistingContact(db, workflow.account_id, sanitizedPhone);
       if (existingContact) {
         contact = existingContact;
+        const updateFields: any = {};
         if (customerName && customerName !== existingContact.name) {
-          await db.from('contacts').update({ name: customerName, updated_at: new Date().toISOString() }).eq('id', existingContact.id);
+          updateFields.name = customerName;
+        }
+        if (customerEmail && customerEmail !== existingContact.email) {
+          updateFields.email = customerEmail;
+        }
+        if (Object.keys(updateFields).length > 0) {
+          updateFields.updated_at = new Date().toISOString();
+          await db.from('contacts').update(updateFields).eq('id', existingContact.id);
+          Object.assign(existingContact, updateFields);
         }
         conversation = await findOrCreateConversation(
           workflow.account_id,
@@ -418,14 +435,24 @@ async function findOrCreateContact(
   accountId: string,
   configOwnerUserId: string,
   phone: string,
-  name: string
+  name: string,
+  email?: string | null
 ) {
   const db = supabaseAdmin();
   const existingContact = await findExistingContact(db, accountId, phone);
 
   if (existingContact) {
+    const updateFields: any = {};
     if (name && name !== existingContact.name) {
-      await db.from('contacts').update({ name, updated_at: new Date().toISOString() }).eq('id', existingContact.id);
+      updateFields.name = name;
+    }
+    if (email && email !== existingContact.email) {
+      updateFields.email = email;
+    }
+    if (Object.keys(updateFields).length > 0) {
+      updateFields.updated_at = new Date().toISOString();
+      await db.from('contacts').update(updateFields).eq('id', existingContact.id);
+      Object.assign(existingContact, updateFields);
     }
     return { contact: existingContact, wasCreated: false };
   }
@@ -436,7 +463,8 @@ async function findOrCreateContact(
       account_id: accountId,
       user_id: configOwnerUserId,
       phone,
-      name: name || phone
+      name: name || phone,
+      email: email || null
     })
     .select()
     .single();
