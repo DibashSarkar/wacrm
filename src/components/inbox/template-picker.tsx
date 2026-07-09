@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { extractVariableIndices } from "@/lib/whatsapp/template-validators";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // ─── Public interface ────────────────────────────────────────────────────────
 
@@ -93,6 +94,7 @@ export function TemplatePicker({
   onOpenChange,
   onSelect,
 }: TemplatePickerProps) {
+  const t = useTranslations("Inbox.templatePicker");
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -325,7 +327,7 @@ export function TemplatePicker({
               type="button"
               onClick={() => { setSelected(null); setSearch(""); }}
               className="rounded-md text-slate-400 hover:bg-slate-800 hover:text-white p-1.5 flex items-center justify-center transition-colors flex-shrink-0"
-              title="Back to list"
+              title={t("back")}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -333,7 +335,7 @@ export function TemplatePicker({
           <div className="flex items-center gap-2 min-w-0">
             <LayoutTemplate className="h-4 w-4 text-primary flex-shrink-0" />
             <DialogTitle className="text-white text-sm font-semibold truncate">
-              {selected ? selected.name : "Send Template"}
+              {selected ? selected.name : t("sendTemplate")}
             </DialogTitle>
             {selected && (
               <Badge className="border border-primary/30 bg-primary/20 text-[10px] text-primary flex-shrink-0">
@@ -343,8 +345,8 @@ export function TemplatePicker({
           </div>
           <DialogDescription className="sr-only">
             {selected
-              ? "Fill in the placeholders to render this template. Meta requires every variable to be set."
-              : "Pick an approved WhatsApp template to send to this contact."}
+              ? t("fillPlaceholders")
+              : t("pickTemplate")}
           </DialogDescription>
         </DialogHeader>
 
@@ -369,42 +371,42 @@ export function TemplatePicker({
                 ) : filteredTemplates.length === 0 ? (
                   <div className="rounded-md border border-slate-800 bg-slate-950/50 p-6 text-center">
                     <p className="text-sm text-slate-300">
-                      {search ? "No templates match your search" : "No approved templates"}
+                      {search ? "No templates match your search" : t("noApprovedTemplates")}
                     </p>
                     {!search && (
                       <p className="mt-1 text-xs text-slate-500">
-                        Approve a template in Meta WhatsApp Manager, then sync from Settings → Templates.
+                        {t("noApprovedTemplatesHint")}
                       </p>
                     )}
                   </div>
                 ) : (
-                  filteredTemplates.map((t) => (
+                  filteredTemplates.map((tpl) => (
                     <button
-                      key={t.id}
+                      key={tpl.id}
                       type="button"
-                      onClick={() => pickTemplate(t)}
+                      onClick={() => pickTemplate(tpl)}
                       className="w-full rounded-md border border-slate-800 bg-slate-950/50 p-3 text-left transition-colors hover:border-primary/40 hover:bg-slate-800"
                     >
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-medium text-white">{t.name}</p>
+                            <p className="truncate text-sm font-medium text-white">{tpl.name}</p>
                             <Badge className="border border-primary/30 bg-primary/20 text-[10px] text-primary">
-                              {t.category}
+                              {tpl.category}
                             </Badge>
-                            {(t.header_type === "image" || t.header_type === "video" || t.header_type === "document") && (
+                            {(tpl.header_type === "image" || tpl.header_type === "video" || tpl.header_type === "document") && (
                               <span className="text-[10px] text-slate-500 uppercase flex items-center gap-0.5">
-                                {t.header_type === "image" && <Image className="h-3 w-3" />}
-                                {t.header_type === "video" && <Video className="h-3 w-3" />}
-                                {t.header_type === "document" && <FileText className="h-3 w-3" />}
-                                {t.header_type}
+                                {tpl.header_type === "image" && <Image className="h-3 w-3" />}
+                                {tpl.header_type === "video" && <Video className="h-3 w-3" />}
+                                {tpl.header_type === "document" && <FileText className="h-3 w-3" />}
+                                {tpl.header_type}
                               </span>
                             )}
-                            {t.language && (
-                              <span className="text-[10px] uppercase text-slate-500">{t.language}</span>
+                            {tpl.language && (
+                              <span className="text-[10px] uppercase text-slate-500">{tpl.language}</span>
                             )}
                           </div>
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-400">{t.body_text}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-400">{tpl.body_text}</p>
                         </div>
                         <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500 mt-0.5" />
                       </div>
@@ -418,7 +420,7 @@ export function TemplatePicker({
                   onClick={() => handleOpenChange(false)}
                   className="border-slate-700 text-slate-300 hover:bg-slate-800"
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -596,7 +598,7 @@ export function TemplatePicker({
                           <Input
                             value={headerText}
                             onChange={(e) => setHeaderText(e.target.value)}
-                            placeholder="Value for the header variable"
+                            placeholder={t("headerValuePlaceholder") || "Value for the header variable"}
                             className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
                           />
                         </div>
@@ -615,7 +617,7 @@ export function TemplatePicker({
                               next[i] = e.target.value;
                               setBodyParams(next);
                             }}
-                            placeholder={`Value for {{${v}}}`}
+                            placeholder={t("bodyValuePlaceholder", { val: `{{${v}}}` }) || `Value for {{${v}}}`}
                             className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
                           />
                         </div>
@@ -778,7 +780,7 @@ export function TemplatePicker({
                                       [idx]: e.target.value,
                                     }))
                                   }
-                                  placeholder="URL suffix value for {{1}}"
+                                  placeholder={t("urlSuffixValuePlaceholder") || "URL suffix value for {{1}}"}
                                   className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 text-xs h-8"
                                 />
                                 {buttonParams[idx] && (
@@ -821,7 +823,7 @@ export function TemplatePicker({
                     onClick={confirm}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex-shrink-0"
                   >
-                    Send Template
+                    {t("send")}
                   </Button>
                 </div>
               </div>
