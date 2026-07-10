@@ -127,7 +127,7 @@ function emptyButton(type: TemplateButton['type']): TemplateButton {
 export function TemplateManager() {
   const t = useTranslations('Settings.templates');
   const supabase = createClient();
-  const { user, accountId, canEditSettings, loading: authLoading } = useAuth();
+  const { user, accountId, canManageTemplates, loading: authLoading } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
@@ -491,13 +491,13 @@ export function TemplateManager() {
             <Button
               variant="outline"
               onClick={handleSyncFromMeta}
-              disabled={syncing || !canEditSettings}
+              disabled={syncing || !canManageTemplates}
               title={t('syncTitle')}
             >
               <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? t('syncing') : t('syncFromMeta')}
             </Button>
-            <Button onClick={openCreate} disabled={!canEditSettings}>
+            <Button onClick={openCreate} disabled={!canManageTemplates}>
               <Plus className="size-4" />
               {t('newTemplate')}
             </Button>
@@ -570,7 +570,7 @@ export function TemplateManager() {
                       </div>
                     )}
                   </div>
-                  {canEditSettings && (
+                  {canManageTemplates && (
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {statusKey === 'APPROVED' && (
                         <Button
