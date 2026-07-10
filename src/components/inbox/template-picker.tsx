@@ -315,18 +315,18 @@ export function TemplatePicker({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={`border-slate-700 bg-slate-900 p-0 gap-0 overflow-hidden flex flex-col ${
+        className={`border-border bg-card p-0 gap-0 overflow-hidden flex flex-col ${
           selected ? "sm:max-w-5xl" : "sm:max-w-lg"
         }`}
         style={{ maxHeight: "90vh" }}
       >
         {/* Header */}
-        <DialogHeader className="flex-shrink-0 flex flex-row items-center gap-3 px-5 py-4 border-b border-slate-800 bg-slate-900">
+        <DialogHeader className="flex-shrink-0 flex flex-row items-center gap-3 px-5 py-4 border-b border-border bg-card">
           {selected && (
             <button
               type="button"
               onClick={() => { setSelected(null); setSearch(""); }}
-              className="rounded-md text-slate-400 hover:bg-slate-800 hover:text-white p-1.5 flex items-center justify-center transition-colors flex-shrink-0"
+              className="rounded-md text-muted-foreground hover:bg-muted hover:text-foreground p-1.5 flex items-center justify-center transition-colors flex-shrink-0"
               title={t("back")}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -334,7 +334,7 @@ export function TemplatePicker({
           )}
           <div className="flex items-center gap-2 min-w-0">
             <LayoutTemplate className="h-4 w-4 text-primary flex-shrink-0" />
-            <DialogTitle className="text-white text-sm font-semibold truncate">
+            <DialogTitle className="text-foreground text-sm font-semibold truncate">
               {selected ? selected.name : t("sendTemplate")}
             </DialogTitle>
             {selected && (
@@ -355,12 +355,12 @@ export function TemplatePicker({
           {/* ── Step 1: Template list ── */}
           {!selected ? (
             <div className="flex flex-col h-full">
-              <div className="px-5 py-3 border-b border-slate-800">
+              <div className="px-5 py-3 border-b border-border">
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search templates…"
-                  className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 h-8 text-sm"
+                  className="h-8 text-sm"
                 />
               </div>
               <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
@@ -369,12 +369,12 @@ export function TemplatePicker({
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : filteredTemplates.length === 0 ? (
-                  <div className="rounded-md border border-slate-800 bg-slate-950/50 p-6 text-center">
-                    <p className="text-sm text-slate-300">
+                  <div className="rounded-md border border-border bg-muted/30 p-6 text-center">
+                    <p className="text-sm text-foreground">
                       {search ? "No templates match your search" : t("noApprovedTemplates")}
                     </p>
                     {!search && (
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {t("noApprovedTemplatesHint")}
                       </p>
                     )}
@@ -385,17 +385,17 @@ export function TemplatePicker({
                       key={tpl.id}
                       type="button"
                       onClick={() => pickTemplate(tpl)}
-                      className="w-full rounded-md border border-slate-800 bg-slate-950/50 p-3 text-left transition-colors hover:border-primary/40 hover:bg-slate-800"
+                      className="w-full rounded-md border border-border bg-card-2 p-3 text-left transition-colors hover:border-primary/40 hover:bg-muted"
                     >
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-medium text-white">{tpl.name}</p>
+                            <p className="truncate text-sm font-medium text-foreground">{tpl.name}</p>
                             <Badge className="border border-primary/30 bg-primary/20 text-[10px] text-primary">
                               {tpl.category}
                             </Badge>
                             {(tpl.header_type === "image" || tpl.header_type === "video" || tpl.header_type === "document") && (
-                              <span className="text-[10px] text-slate-500 uppercase flex items-center gap-0.5">
+                              <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-0.5">
                                 {tpl.header_type === "image" && <Image className="h-3 w-3" />}
                                 {tpl.header_type === "video" && <Video className="h-3 w-3" />}
                                 {tpl.header_type === "document" && <FileText className="h-3 w-3" />}
@@ -403,22 +403,22 @@ export function TemplatePicker({
                               </span>
                             )}
                             {tpl.language && (
-                              <span className="text-[10px] uppercase text-slate-500">{tpl.language}</span>
+                              <span className="text-[10px] uppercase text-muted-foreground">{tpl.language}</span>
                             )}
                           </div>
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-400">{tpl.body_text}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{tpl.body_text}</p>
                         </div>
-                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500 mt-0.5" />
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
                       </div>
                     </button>
                   ))
                 )}
               </div>
-              <div className="flex-shrink-0 px-5 py-3 border-t border-slate-800 bg-slate-900 flex justify-end">
+              <div className="flex-shrink-0 px-5 py-3 border-t border-border bg-card flex justify-end">
                 <Button
                   variant="outline"
                   onClick={() => handleOpenChange(false)}
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                  className=""
                 >
                   {t("cancel")}
                 </Button>
@@ -428,36 +428,36 @@ export function TemplatePicker({
             /* ── Step 2: Two-column config ── */
             <div className="flex h-full overflow-hidden">
               {/* Left column: Live preview */}
-              <div className="w-[280px] flex-shrink-0 border-r border-slate-800 bg-slate-950/50 flex flex-col overflow-y-auto">
-                <div className="px-4 py-3 border-b border-slate-800/60">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+              <div className="w-[280px] flex-shrink-0 border-r border-border bg-muted/30 flex flex-col overflow-y-auto">
+                <div className="px-4 py-3 border-b border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Live Preview
                   </span>
                 </div>
                 <div className="flex-1 p-4">
                   {/* WhatsApp-style chat bubble */}
-                  <div className="rounded-xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-md">
+                  <div className="rounded-xl bg-card border border-border overflow-hidden shadow-md">
                     {/* Chat header bar */}
-                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 border-b border-slate-700/50">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted border-b border-border">
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary flex-shrink-0">
                         WA
                       </div>
                       <div>
-                        <div className="text-[10px] font-semibold text-white">Business</div>
-                        <div className="text-[8px] text-slate-500">WhatsApp</div>
+                        <div className="text-[10px] font-semibold text-foreground">Business</div>
+                        <div className="text-[8px] text-muted-foreground">WhatsApp</div>
                       </div>
                     </div>
                     {/* Message bubble */}
                     <div className="p-3 space-y-2">
-                      <div className="rounded-lg bg-slate-800 border border-slate-700/50 overflow-hidden text-white shadow-sm">
+                      <div className="rounded-lg bg-muted border border-border overflow-hidden text-foreground shadow-sm">
                         {/* Media header preview */}
                         {selected.header_type === "image" && (
-                          <div className="aspect-video bg-slate-700 flex items-center justify-center relative overflow-hidden">
+                          <div className="aspect-video bg-muted/50 flex items-center justify-center relative overflow-hidden">
                             {previewImageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={previewImageUrl} alt="Header" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="flex flex-col items-center gap-1 text-slate-500">
+                              <div className="flex flex-col items-center gap-1 text-muted-foreground">
                                 <Image className="h-5 w-5" />
                                 <span className="text-[9px]">No image set</span>
                               </div>
@@ -465,16 +465,16 @@ export function TemplatePicker({
                           </div>
                         )}
                         {selected.header_type === "video" && (
-                          <div className="aspect-video bg-slate-700 flex items-center justify-center">
+                          <div className="aspect-video bg-muted/50 flex items-center justify-center">
                             {(mediaSourceType === "upload" && mediaUploadUrl) || (mediaSourceType === "static" && mediaLink) ? (
                               <div className="flex flex-col items-center gap-1 text-primary">
                                 <Video className="h-5 w-5" />
-                                <span className="text-[9px] text-slate-300">
+                                <span className="text-[9px] text-foreground">
                                   {mediaFileName || "Video ready"}
                                 </span>
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center gap-1 text-slate-500">
+                              <div className="flex flex-col items-center gap-1 text-muted-foreground">
                                 <Video className="h-5 w-5" />
                                 <span className="text-[9px]">
                                   {templateHasDefaultMedia ? "Default video" : "No video set"}
@@ -484,9 +484,9 @@ export function TemplatePicker({
                           </div>
                         )}
                         {selected.header_type === "document" && (
-                          <div className="px-3 py-2 bg-slate-700/50 flex items-center gap-2 border-b border-slate-700">
+                          <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 border-b border-border">
                             <FileText className="h-4 w-4 text-red-400 flex-shrink-0" />
-                            <span className="text-[10px] text-slate-300 truncate">
+                            <span className="text-[10px] text-foreground truncate">
                               {mediaFileName ||
                                 ((mediaSourceType === "static" && mediaLink) ? "Document ready" :
                                 templateHasDefaultMedia ? "Default document" : "No document set")}
@@ -495,22 +495,22 @@ export function TemplatePicker({
                         )}
                         {/* Text header */}
                         {selected.header_type === "text" && previewHeader && (
-                          <div className="px-3 pt-2.5 text-[11px] font-bold text-white border-b border-slate-700/50 pb-2">
+                          <div className="px-3 pt-2.5 text-[11px] font-bold text-foreground border-b border-border pb-2">
                             {previewHeader}
                           </div>
                         )}
                         {/* Body text */}
-                        <div className="px-3 py-2.5 text-[11px] text-slate-200 leading-relaxed whitespace-pre-wrap">
-                          {previewBody || <span className="text-slate-500 italic">Body text preview</span>}
+                        <div className="px-3 py-2.5 text-[11px] text-foreground leading-relaxed whitespace-pre-wrap">
+                          {previewBody || <span className="text-muted-foreground italic">Body text preview</span>}
                         </div>
                         {/* Footer */}
                         {selected.footer_text && (
-                          <div className="px-3 pb-2 text-[9px] text-slate-500 italic">
+                          <div className="px-3 pb-2 text-[9px] text-muted-foreground italic">
                             {selected.footer_text}
                           </div>
                         )}
                         {/* Timestamp */}
-                        <div className="px-3 pb-1.5 text-[8px] text-slate-600 text-right font-mono">
+                        <div className="px-3 pb-1.5 text-[8px] text-muted-foreground text-right font-mono">
                           {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
@@ -520,7 +520,7 @@ export function TemplatePicker({
                           {selected.buttons!.map((btn, idx) => (
                             <div
                               key={idx}
-                              className="rounded-lg bg-slate-800 border border-slate-700/50 px-3 py-1.5 text-center text-[11px] font-semibold text-primary/90"
+                              className="rounded-lg bg-muted border border-border px-3 py-1.5 text-center text-[11px] font-semibold text-primary/90"
                             >
                               {btn.text}
                             </div>
@@ -531,9 +531,9 @@ export function TemplatePicker({
                   </div>
                   {/* Template meta */}
                   <div className="mt-3 space-y-1">
-                    <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                       <span className="font-mono">{selected.name}</span>
-                      <span className="text-slate-700">·</span>
+                      <span className="opacity-50">·</span>
                       <span className="uppercase">{selected.language}</span>
                     </div>
                   </div>
@@ -543,7 +543,7 @@ export function TemplatePicker({
               {/* Right column: Input tabs */}
               <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 {/* Tab nav */}
-                <div className="flex-shrink-0 flex border-b border-slate-800 bg-slate-900/60">
+                <div className="flex-shrink-0 flex border-b border-border bg-card">
                   <TabButton active={activeTab === "map"} onClick={() => setActiveTab("map")}>
                     Map Variables
                   </TabButton>
@@ -579,9 +579,9 @@ export function TemplatePicker({
                   {activeTab === "map" && (
                     <div className="space-y-4">
                       {slots && slots.headerVarCount === 0 && slots.bodyVars.length === 0 && (
-                        <div className="rounded-lg border border-slate-800 bg-slate-950/30 px-4 py-6 text-center">
-                          <p className="text-sm text-slate-400">This template has no body variables.</p>
-                          <p className="text-xs text-slate-600 mt-1">
+                        <div className="rounded-lg border border-border bg-muted/30 px-4 py-6 text-center">
+                          <p className="text-sm text-muted-foreground">This template has no body variables.</p>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {hasMediaHeader
                               ? "Switch to the Media tab to set a header image/video/document."
                               : "You can send it directly."}
@@ -592,14 +592,14 @@ export function TemplatePicker({
                       {/* Header text var */}
                       {slots && slots.headerVarCount > 0 && (
                         <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-slate-300">
-                            Header <span className="font-mono text-slate-500">{"{{1}}"}</span>
+                          <Label className="text-xs font-semibold text-foreground">
+                            Header <span className="font-mono text-muted-foreground">{"{{1}}"}</span>
                           </Label>
                           <Input
                             value={headerText}
                             onChange={(e) => setHeaderText(e.target.value)}
                             placeholder={t("headerValuePlaceholder") || "Value for the header variable"}
-                            className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+                            className=""
                           />
                         </div>
                       )}
@@ -607,8 +607,8 @@ export function TemplatePicker({
                       {/* Body vars */}
                       {slots?.bodyVars.map((v, i) => (
                         <div key={v} className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-slate-300">
-                            Body <span className="font-mono text-slate-500">{`{{${v}}}`}</span>
+                          <Label className="text-xs font-semibold text-foreground">
+                            Body <span className="font-mono text-muted-foreground">{`{{${v}}}`}</span>
                           </Label>
                           <Input
                             value={bodyParams[i] ?? ""}
@@ -618,7 +618,7 @@ export function TemplatePicker({
                               setBodyParams(next);
                             }}
                             placeholder={t("bodyValuePlaceholder", { val: `{{${v}}}` }) || `Value for {{${v}}}`}
-                            className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+                            className=""
                           />
                         </div>
                       ))}
@@ -628,7 +628,7 @@ export function TemplatePicker({
                   {/* ── Media Tab ── */}
                   {activeTab === "media" && hasMediaHeader && (
                     <div className="space-y-4">
-                      <p className="text-xs text-slate-400 leading-relaxed rounded-lg border border-slate-800 bg-slate-950/30 px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground leading-relaxed rounded-lg border border-border bg-muted/30 px-3 py-2.5">
                         {templateHasDefaultMedia
                           ? "This template already has a default media file. You can optionally override it with a different file for this send."
                           : "This template requires a media file. Please provide one below."}
@@ -636,7 +636,7 @@ export function TemplatePicker({
 
                       {/* Source type */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-300">Media Source</Label>
+                        <Label className="text-xs font-semibold text-foreground">Media Source</Label>
                         <div className="flex gap-2">
                           {(["static", "upload"] as const).map((type) => (
                             <button
@@ -646,7 +646,7 @@ export function TemplatePicker({
                               className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
                                 mediaSourceType === type
                                   ? "border-primary bg-primary/10 text-primary"
-                                  : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                                  : "border-border bg-muted text-muted-foreground hover:border-primary/40 hover:text-foreground"
                               }`}
                             >
                               {type === "static" ? "🔗 Paste URL" : "⬆ Upload File"}
@@ -658,7 +658,7 @@ export function TemplatePicker({
                       {/* Static URL */}
                       {mediaSourceType === "static" && (
                         <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-slate-300">Media URL</Label>
+                          <Label className="text-xs font-semibold text-foreground">Media URL</Label>
                           <Input
                             value={mediaLink}
                             onChange={(e) => setMediaLink(e.target.value)}
@@ -669,9 +669,9 @@ export function TemplatePicker({
                                 ? "https://example.com/document.pdf"
                                 : "https://example.com/image.jpg"
                             }
-                            className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+                            className=""
                           />
-                          <p className="text-[10px] text-slate-600">
+                          <p className="text-[10px] text-muted-foreground">
                             Must be a publicly accessible HTTPS URL.
                           </p>
                         </div>
@@ -680,22 +680,22 @@ export function TemplatePicker({
                       {/* Upload */}
                       {mediaSourceType === "upload" && (
                         <div className="space-y-2">
-                          <Label className="text-xs font-semibold text-slate-300">Upload File</Label>
+                          <Label className="text-xs font-semibold text-foreground">Upload File</Label>
                           {mediaUploadUrl ? (
-                            <div className="flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
-                              <Paperclip className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
+                            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+                              <Paperclip className="h-3.5 w-3.5 shrink-0 text-primary" />
                               <a
                                 href={mediaUploadUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="min-w-0 flex-1 truncate text-slate-200 hover:text-cyan-300"
+                                className="min-w-0 flex-1 truncate text-foreground hover:text-primary"
                               >
                                 {mediaFileName || mediaUploadUrl}
                               </a>
                               <button
                                 type="button"
                                 onClick={() => { setMediaUploadUrl(""); setMediaFileName(""); }}
-                                className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
@@ -705,7 +705,7 @@ export function TemplatePicker({
                               type="button"
                               disabled={mediaUploading}
                               onClick={() => fileInputRef.current?.click()}
-                              className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-700 bg-slate-800 px-3 py-5 text-xs text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-750 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-3 py-5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {mediaUploading ? (
                                 <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
@@ -731,7 +731,7 @@ export function TemplatePicker({
                               e.target.value = "";
                             }}
                           />
-                          <p className="text-[10px] text-slate-600">
+                          <p className="text-[10px] text-muted-foreground">
                             {selected.header_type === "video"
                               ? "Allowed: .mp4 · Max 10 MB"
                               : selected.header_type === "document"
@@ -746,8 +746,8 @@ export function TemplatePicker({
                   {/* ── Advance / Buttons Tab ── */}
                   {activeTab === "advance" && hasButtons && (
                     <div className="space-y-4">
-                      <p className="text-xs text-slate-400 leading-relaxed rounded-lg border border-slate-800 bg-slate-950/30 px-3 py-2.5">
-                        URL buttons with a <span className="font-mono text-slate-300">{"{{1}}"}</span> variable
+                      <p className="text-xs text-muted-foreground leading-relaxed rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                        URL buttons with a <span className="font-mono text-foreground">{"{{1}}"}</span> variable
                         require a suffix value. Quick-reply and phone buttons don&apos;t need input.
                       </p>
                       {selected!.buttons!.map((btn, idx) => {
@@ -757,19 +757,19 @@ export function TemplatePicker({
                         return (
                           <div
                             key={idx}
-                            className="rounded-lg border border-slate-800 bg-slate-950/30 p-3 space-y-2"
+                            className="rounded-lg border border-border bg-muted/20 p-3 space-y-2"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-white">
+                              <span className="text-xs font-semibold text-foreground">
                                 {`Button ${idx + 1}: "${btn.text}"`}
                               </span>
-                              <Badge className="text-[9px] border-slate-700 text-slate-400 bg-transparent">
+                              <Badge className="text-[9px] border-border text-muted-foreground bg-transparent">
                                 {btn.type}
                               </Badge>
                             </div>
                             {needsParam ? (
                               <>
-                                <p className="text-[10px] text-slate-500 font-mono break-all">
+                                <p className="text-[10px] text-muted-foreground font-mono break-all">
                                   Base URL: {btn.url}
                                 </p>
                                 <Input
@@ -781,7 +781,7 @@ export function TemplatePicker({
                                     }))
                                   }
                                   placeholder={t("urlSuffixValuePlaceholder") || "URL suffix value for {{1}}"}
-                                  className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 text-xs h-8"
+                                  className="text-xs h-8"
                                 />
                                 {buttonParams[idx] && (
                                   <p className="text-[10px] text-primary/80 font-mono break-all">
@@ -790,7 +790,7 @@ export function TemplatePicker({
                                 )}
                               </>
                             ) : (
-                              <p className="text-[10px] text-slate-600">
+                              <p className="text-[10px] text-muted-foreground">
                                 No input required for this button type.
                               </p>
                             )}
@@ -802,8 +802,8 @@ export function TemplatePicker({
                 </div>
 
                 {/* Footer */}
-                <div className="flex-shrink-0 flex items-center justify-between gap-3 border-t border-slate-800 bg-slate-900 px-5 py-3">
-                  <div className="text-[10px] text-slate-600">
+                <div className="flex-shrink-0 flex items-center justify-between gap-3 border-t border-border bg-card px-5 py-3">
+                  <div className="text-[10px] text-muted-foreground">
                     {!canConfirm && selected && (
                       <span className="text-amber-500/80">
                         {slots?.bodyVars.some((_, i) => !(bodyParams[i] ?? "").trim())
@@ -858,10 +858,10 @@ function TabButton({
       title={title}
       className={`flex items-center gap-1 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap ${
         disabled
-          ? "opacity-30 cursor-not-allowed text-slate-600 border-transparent"
+          ? "opacity-30 cursor-not-allowed text-muted-foreground border-transparent"
           : active
           ? "border-primary text-primary"
-          : "border-transparent text-slate-400 hover:text-white"
+          : "border-transparent text-muted-foreground hover:text-foreground"
       }`}
     >
       {children}

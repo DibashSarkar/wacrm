@@ -26,21 +26,16 @@ export function WebhookConfiguration() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Fetch active WhatsApp configurations
         const { data: configs } = await supabase
           .from('whatsapp_config')
           .select('id, phone_number_id');
         
-        // Fetch detailed phone numbers from Meta verify or fallback to id
-        // In wacrm, we can query public profiles or display phone number id.
-        // Let's resolve what we have in whatsapp_config
         const channelsList = (configs || []).map((c) => ({
           id: c.id,
-          display_phone_number: c.phone_number_id // Fallback representation
+          display_phone_number: c.phone_number_id
         }));
         setChannels(channelsList);
 
-        // Fetch existing webhook integration
         const res = await fetch('/api/webhooks/config');
         if (res.ok) {
           const data = await res.json();
@@ -109,7 +104,6 @@ export function WebhookConfiguration() {
     toast.success('Webhook URL copied to clipboard.');
   };
 
-  // Polls the config API for updates to last_payload
   const startListening = () => {
     if (!integrationId) {
       toast.error('Please save your configuration first to generate a Webhook URL.');
@@ -121,7 +115,7 @@ export function WebhookConfiguration() {
     let count = 0;
     timerRef.current = setInterval(async () => {
       count++;
-      if (count > 20) { // Stop polling after 1 minute (20 * 3s)
+      if (count > 20) {
         stopListening();
         toast.warning('Listening timed out. No payload received.');
         return;
@@ -156,7 +150,7 @@ export function WebhookConfiguration() {
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <RefreshCw className="h-6 w-6 animate-spin text-slate-500" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -164,25 +158,24 @@ export function WebhookConfiguration() {
   return (
     <div className="space-y-6">
       {/* Settings Form */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-6">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Integration Settings</h3>
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Integration Settings</h3>
         <div className="mt-4 grid gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-500 dark:text-slate-400">Integration Name</label>
+            <label className="mb-2 block text-xs font-semibold text-muted-foreground">Integration Name</label>
             <Input
               value={integrationName}
               onChange={(e) => setIntegrationName(e.target.value)}
               placeholder="e.g. HubSpot Integration"
-              className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-500 dark:text-slate-400">Select WhatsApp Channel</label>
+            <label className="mb-2 block text-xs font-semibold text-muted-foreground">Select WhatsApp Channel</label>
             <select
               value={selectedChannel}
               onChange={(e) => setSelectedChannel(e.target.value)}
-              className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
             >
               <option value="">Select a channel...</option>
               {channels.map((c) => (
@@ -209,9 +202,9 @@ export function WebhookConfiguration() {
       {integrationId && (
         <>
           {/* Webhook URL Display */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Webhook URL</h3>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Webhook URL</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
               Copy this URL and add it under the webhook section of the application you are integrating with.
             </p>
             <div className="mt-4 flex items-center gap-2">
@@ -219,12 +212,11 @@ export function WebhookConfiguration() {
                 type="text"
                 readOnly
                 value={getWebhookUrl()}
-                className="flex-1 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="flex-1 rounded-md border border-input bg-muted/30 px-3 py-2 text-xs font-mono text-foreground focus:outline-none"
               />
               <Button
                 onClick={copyUrl}
                 variant="outline"
-                className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900"
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -232,11 +224,11 @@ export function WebhookConfiguration() {
           </div>
 
           {/* Test Payload Capture */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Response Received</h3>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Response Received</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
                   Send a test request from your external system to capture the JSON schema.
                 </p>
               </div>
@@ -248,7 +240,7 @@ export function WebhookConfiguration() {
               >
                 {isListening ? (
                   <>
-                    <Radio className="h-4 w-4 animate-pulse text-slate-900 dark:text-white" />
+                    <Radio className="h-4 w-4 animate-pulse" />
                     Listening...
                   </>
                 ) : (
@@ -262,31 +254,31 @@ export function WebhookConfiguration() {
 
             {lastPayload ? (
               <div className="mt-6 space-y-4">
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4">
-                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-2 mb-3">
-                    <CheckCircle className="h-4 w-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-slate-850 dark:text-slate-200">Captured Schema Paths ({flattenedPaths.length} fields)</span>
+                <div className="rounded-lg border border-border bg-card-2 p-4">
+                  <div className="flex items-center gap-2 border-b border-border pb-2 mb-3">
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xs font-semibold text-foreground">Captured Schema Paths ({flattenedPaths.length} fields)</span>
                   </div>
                   <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto pr-2">
                     {flattenedPaths.map((path) => (
-                      <span key={path} className="rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-700 dark:text-slate-300">
+                      <span key={path} className="rounded bg-muted border border-border px-2 py-0.5 text-[10px] font-mono text-foreground">
                         {path}
                       </span>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2 font-mono">Payload Sample:</span>
-                  <pre className="max-h-60 overflow-y-auto rounded bg-slate-100 dark:bg-slate-900 p-3 text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                <div className="rounded-lg border border-border bg-card-2 p-4">
+                  <span className="text-xs font-semibold text-muted-foreground block mb-2 font-mono">Payload Sample:</span>
+                  <pre className="max-h-60 overflow-y-auto rounded bg-muted p-3 text-[11px] font-mono text-foreground border border-border">
                     {JSON.stringify(lastPayload, null, 2)}
                   </pre>
                 </div>
               </div>
             ) : (
-              <div className="mt-6 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-white dark:bg-slate-950/20">
-                <AlertCircle className="h-8 w-8 text-slate-500" />
-                <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 max-w-xs">
+              <div className="mt-6 flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center bg-muted/20">
+                <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                <p className="mt-2 text-xs text-muted-foreground max-w-xs">
                   No sample payload captured yet. Start listening and submit a request from your system.
                 </p>
               </div>

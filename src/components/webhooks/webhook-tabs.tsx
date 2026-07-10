@@ -14,10 +14,10 @@ export function WebhookTabs() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50 p-1">
+        <TabsList className="border border-border bg-muted p-1">
           <TabsTrigger
             value="overview"
-            className="data-active:text-primary text-slate-550 dark:text-slate-400 data-active:bg-white dark:data-active:bg-slate-800 flex items-center gap-1.5 px-4 py-2"
+            className="data-active:text-primary text-muted-foreground data-active:bg-card data-active:shadow-sm flex items-center gap-1.5 px-4 py-2"
           >
             <HelpCircle className="h-4 w-4" />
             Overview
@@ -25,7 +25,7 @@ export function WebhookTabs() {
           
           <TabsTrigger
             value="configuration"
-            className="data-active:text-primary text-slate-550 dark:text-slate-400 data-active:bg-white dark:data-active:bg-slate-800 flex items-center gap-1.5 px-4 py-2"
+            className="data-active:text-primary text-muted-foreground data-active:bg-card data-active:shadow-sm flex items-center gap-1.5 px-4 py-2"
           >
             <Settings className="h-4 w-4" />
             Configuration
@@ -33,7 +33,7 @@ export function WebhookTabs() {
           
           <TabsTrigger
             value="workflows"
-            className="data-active:text-primary text-slate-550 dark:text-slate-400 data-active:bg-white dark:data-active:bg-slate-800 flex items-center gap-1.5 px-4 py-2"
+            className="data-active:text-primary text-muted-foreground data-active:bg-card data-active:shadow-sm flex items-center gap-1.5 px-4 py-2"
           >
             <Workflow className="h-4 w-4" />
             Workflows
@@ -41,7 +41,7 @@ export function WebhookTabs() {
           
           <TabsTrigger
             value="logs"
-            className="data-active:text-primary text-slate-550 dark:text-slate-400 data-active:bg-white dark:data-active:bg-slate-800 flex items-center gap-1.5 px-4 py-2"
+            className="data-active:text-primary text-muted-foreground data-active:bg-card data-active:shadow-sm flex items-center gap-1.5 px-4 py-2"
           >
             <History className="h-4 w-4" />
             Logs

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Edit2, Trash2, Copy, ToggleLeft, ToggleRight, Settings2, Play, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, ToggleLeft, ToggleRight, Settings2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditWorkflowModal } from './edit-workflow-modal';
 
@@ -12,7 +12,6 @@ export function WebhookWorkflows() {
   const [isConfigured, setIsConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // View State (list or inline form)
   const [view, setView] = useState<'list' | 'edit' | 'create'>('list');
   const [selectedWorkflow, setSelectedWorkflow] = useState<any | null>(null);
 
@@ -22,7 +21,6 @@ export function WebhookWorkflows() {
 
   const loadData = async () => {
     try {
-      // 1. Fetch integration to get isConfigured & lastPayload
       const configRes = await fetch('/api/webhooks/config');
       if (configRes.ok) {
         const configData = await configRes.json();
@@ -32,7 +30,6 @@ export function WebhookWorkflows() {
         }
       }
 
-      // 2. Fetch workflows
       const workflowsRes = await fetch('/api/webhooks/workflows');
       if (workflowsRes.ok) {
         const workflowsData = await workflowsRes.json();
@@ -48,9 +45,7 @@ export function WebhookWorkflows() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this workflow?')) return;
     try {
-      const res = await fetch(`/api/webhooks/workflows/${id}`, {
-        method: 'DELETE'
-      });
+      const res = await fetch(`/api/webhooks/workflows/${id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Workflow deleted.');
         loadData();
@@ -123,7 +118,7 @@ export function WebhookWorkflows() {
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <RefreshCw className="h-6 w-6 animate-spin text-slate-500" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -146,8 +141,8 @@ export function WebhookWorkflows() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Workflows</h3>
-          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Workflows</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Define triggers and actions to send WhatsApp messages automatically ({workflows.length}/5 allowed).
           </p>
         </div>
@@ -162,26 +157,26 @@ export function WebhookWorkflows() {
       </div>
 
       {!isConfigured ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center bg-slate-50/50 dark:bg-slate-900/10">
-          <AlertCircle className="h-10 w-10 text-slate-500" />
-          <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">Integration Not Configured</h4>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center bg-muted/20">
+          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+          <h4 className="mt-4 text-sm font-semibold text-foreground">Integration Not Configured</h4>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
             Configure integration settings and save under the Configuration tab before building workflows.
           </p>
         </div>
       ) : !lastPayload ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center bg-slate-50/50 dark:bg-slate-900/10">
-          <AlertCircle className="h-10 w-10 text-slate-500" />
-          <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">Test Payload Required</h4>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center bg-muted/20">
+          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+          <h4 className="mt-4 text-sm font-semibold text-foreground">Test Payload Required</h4>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
             Go to the Configuration tab and capture a test payload to map variables before setting up workflows.
           </p>
         </div>
       ) : workflows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center bg-slate-50/50 dark:bg-slate-900/10">
-          <Settings2 className="h-10 w-10 text-slate-500" />
-          <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">No Workflows Configured</h4>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center bg-muted/20">
+          <Settings2 className="h-10 w-10 text-muted-foreground" />
+          <h4 className="mt-4 text-sm font-semibold text-foreground">No Workflows Configured</h4>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
             Build your first workflow to trigger WhatsApp templates on incoming JSON payloads.
           </p>
         </div>
@@ -190,47 +185,47 @@ export function WebhookWorkflows() {
           {workflows.map((wf) => {
             const templateAction = wf.actions?.find((a: any) => a.type === 'send_template');
             return (
-              <div key={wf.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div key={wf.id} className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{wf.name}</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 font-mono break-all">{getWorkflowUrl(wf.id)}</p>
+                      <h4 className="text-sm font-semibold text-foreground">{wf.name}</h4>
+                      <p className="text-[11px] text-muted-foreground mt-1 font-mono break-all">{getWorkflowUrl(wf.id)}</p>
                     </div>
 
                     <button
                       onClick={() => handleToggleActive(wf)}
-                      className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shrink-0 p-1"
+                      className="text-muted-foreground hover:text-foreground shrink-0 p-1"
                     >
                       {wf.is_active ? (
                         <ToggleRight className="h-6 w-6 text-primary" />
                       ) : (
-                        <ToggleLeft className="h-6 w-6 text-slate-400 dark:text-slate-600" />
+                        <ToggleLeft className="h-6 w-6 text-muted-foreground" />
                       )}
                     </button>
                   </div>
 
-                  <div className="mt-4 flex flex-col gap-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 p-3 text-xs">
-                    <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900 pb-1.5 mb-1.5">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">Action details</span>
+                  <div className="mt-4 flex flex-col gap-2 rounded-lg bg-muted/40 border border-border p-3 text-xs">
+                    <div className="flex justify-between items-center border-b border-border pb-1.5 mb-1.5">
+                      <span className="font-semibold text-foreground">Action details</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500 dark:text-slate-400">Trigger:</span>
-                      <span className="text-slate-900 dark:text-white font-medium">On JSON Post</span>
+                      <span className="text-muted-foreground">Trigger:</span>
+                      <span className="text-foreground font-medium">On JSON Post</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500 dark:text-slate-400">WhatsApp Template:</span>
-                      <span className="text-slate-900 dark:text-white font-medium">{templateAction?.template_name || 'None'}</span>
+                      <span className="text-muted-foreground">WhatsApp Template:</span>
+                      <span className="text-foreground font-medium">{templateAction?.template_name || 'None'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800 pt-4">
+                <div className="mt-6 flex justify-between items-center border-t border-border pt-4">
                   <Button
                     onClick={() => copyUrl(wf.id)}
                     variant="ghost"
                     size="sm"
-                    className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs px-2"
+                    className="text-muted-foreground hover:text-foreground text-xs px-2"
                   >
                     <Copy className="h-3.5 w-3.5 mr-1" /> Copy URL
                   </Button>
@@ -240,7 +235,7 @@ export function WebhookWorkflows() {
                       onClick={() => openEditModal(wf)}
                       variant="ghost"
                       size="icon"
-                      className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white h-8 w-8"
+                      className="text-muted-foreground hover:text-foreground h-8 w-8"
                     >
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
@@ -249,7 +244,7 @@ export function WebhookWorkflows() {
                       onClick={() => handleDelete(wf.id)}
                       variant="ghost"
                       size="icon"
-                      className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 h-8 w-8"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
