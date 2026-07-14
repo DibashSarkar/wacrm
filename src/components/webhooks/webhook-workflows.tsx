@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Plus, Edit2, Trash2, Copy, ToggleLeft, ToggleRight, Settings2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EditWorkflowModal } from './edit-workflow-modal';
+import { EditWorkflowModal, type WebhookWorkflow } from './edit-workflow-modal';
 
 export function WebhookWorkflows() {
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [lastPayload, setLastPayload] = useState<any>(null);
+  const [workflows, setWorkflows] = useState<WebhookWorkflow[]>([]);
+  const [lastPayload, setLastPayload] = useState<Record<string, unknown> | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [view, setView] = useState<'list' | 'edit' | 'create'>('list');
-  const [selectedWorkflow, setSelectedWorkflow] = useState<any | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WebhookWorkflow | null>(null);
 
   useEffect(() => {
     loadData();
@@ -53,11 +53,12 @@ export function WebhookWorkflows() {
         throw new Error('Failed to delete');
       }
     } catch (err) {
+      console.error('Failed to delete workflow:', err);
       toast.error('Failed to delete workflow.');
     }
   };
 
-  const handleToggleActive = async (workflow: any) => {
+  const handleToggleActive = async (workflow: WebhookWorkflow) => {
     try {
       const res = await fetch(`/api/webhooks/workflows/${workflow.id}`, {
         method: 'PUT',
@@ -78,6 +79,7 @@ export function WebhookWorkflows() {
         throw new Error('Failed to update status.');
       }
     } catch (err) {
+      console.error('Failed to update active state:', err);
       toast.error('Failed to update active state.');
     }
   };
@@ -110,7 +112,7 @@ export function WebhookWorkflows() {
     setView('create');
   };
 
-  const openEditModal = (workflow: any) => {
+  const openEditModal = (workflow: WebhookWorkflow) => {
     setSelectedWorkflow(workflow);
     setView('edit');
   };
@@ -182,15 +184,15 @@ export function WebhookWorkflows() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {workflows.map((wf) => {
-            const templateAction = wf.actions?.find((a: any) => a.type === 'send_template');
+          {workflows.map((wf, idx) => {
+            const templateAction = wf.actions?.find((a) => a.type === 'send_template');
             return (
-              <div key={wf.id} className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between">
+              <div key={wf.id || idx} className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-foreground">{wf.name}</h4>
-                      <p className="text-[11px] text-muted-foreground mt-1 font-mono break-all">{getWorkflowUrl(wf.id)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 font-mono break-all">{getWorkflowUrl(wf.id || '')}</p>
                     </div>
 
                     <button
@@ -222,7 +224,7 @@ export function WebhookWorkflows() {
 
                 <div className="mt-6 flex justify-between items-center border-t border-border pt-4">
                   <Button
-                    onClick={() => copyUrl(wf.id)}
+                    onClick={() => copyUrl(wf.id || '')}
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-foreground text-xs px-2"
@@ -241,7 +243,7 @@ export function WebhookWorkflows() {
                     </Button>
 
                     <Button
-                      onClick={() => handleDelete(wf.id)}
+                      onClick={() => handleDelete(wf.id || '')}
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive h-8 w-8"

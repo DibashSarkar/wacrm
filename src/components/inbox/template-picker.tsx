@@ -18,7 +18,7 @@ import {
   ArrowLeft,
   ChevronRight,
   FileText,
-  Image,
+  Image as ImageIcon,
   LayoutTemplate,
   Loader2,
   Paperclip,
@@ -227,8 +227,8 @@ export function TemplatePicker({
       setMediaUploadUrl(publicUrl);
       setMediaFileName(file.name);
       toast.success("File uploaded successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Upload failed.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setMediaUploading(false);
     }
@@ -396,7 +396,7 @@ export function TemplatePicker({
                             </Badge>
                             {(tpl.header_type === "image" || tpl.header_type === "video" || tpl.header_type === "document") && (
                               <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-0.5">
-                                {tpl.header_type === "image" && <Image className="h-3 w-3" />}
+                                {tpl.header_type === "image" && <ImageIcon className="h-3 w-3" />}
                                 {tpl.header_type === "video" && <Video className="h-3 w-3" />}
                                 {tpl.header_type === "document" && <FileText className="h-3 w-3" />}
                                 {tpl.header_type}
@@ -458,7 +458,7 @@ export function TemplatePicker({
                               <img src={previewImageUrl} alt="Header" className="w-full h-full object-cover" />
                             ) : (
                               <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                                <Image className="h-5 w-5" />
+                                <ImageIcon className="h-5 w-5" />
                                 <span className="text-[9px]">No image set</span>
                               </div>
                             )}

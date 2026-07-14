@@ -2,16 +2,43 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, X, Info, Paperclip, Upload, Loader2, ArrowLeft, Image } from 'lucide-react';
+import { Plus, Trash2, X, Info, Paperclip, Upload, Loader2, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { createClient } from '@/lib/supabase/client';
 import { extractJsonPaths, getNestedValue, type WebhookCondition } from '@/lib/generic-webhooks/utils';
 
+import type { MessageTemplate } from '@/types';
+
+export interface WebhookWorkflow {
+  id?: string;
+  name: string;
+  is_active: boolean;
+  recipient_name_field: string;
+  recipient_phone_field: string;
+  recipient_email_field: string | null;
+  create_contacts: boolean;
+  conditions?: {
+    matchType?: 'all' | 'any';
+    rules?: WebhookCondition[];
+  } | null;
+  actions?: {
+    type: string;
+    template_name: string;
+    language?: string;
+    mappings?: {
+      body?: { type: 'payload' | 'static' | 'upload'; value: string }[];
+      headerText?: { type: 'payload' | 'static' | 'upload'; value: string };
+      headerMedia?: { type: 'payload' | 'static' | 'upload'; value: string; filename?: string | null };
+      buttons?: Record<string, { type: 'payload' | 'static' | 'upload'; value: string }>;
+    };
+  }[] | null;
+}
+
 interface EditWorkflowModalProps {
-  workflow: any | null; // Null if creating a new workflow
-  lastPayload: any;
+  workflow: WebhookWorkflow | null; // Null if creating a new workflow
+  lastPayload: Record<string, unknown> | null;
   onClose: () => void;
   onSave: () => void;
 }
@@ -30,10 +57,10 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
   const [conditions, setConditions] = useState<WebhookCondition[]>([]);
 
   // Templates & Action
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [bodyMappings, setBodyMappings] = useState<any[]>([]); // [{ index: 1, type: 'payload', value: '' }]
-  const [headerMapping, setHeaderMapping] = useState<any>(null); // { type: 'payload', value: '' }
+  const [bodyMappings, setBodyMappings] = useState<{ index: number; type: 'payload' | 'static' | 'upload'; value: string }[]>([]); // [{ index: 1, type: 'payload', value: '' }]
+  const [headerMapping, setHeaderMapping] = useState<{ type: 'payload' | 'static' | 'upload'; value: string } | null>(null); // { type: 'payload', value: '' }
 
   // Sub tabs state
   const [activeSubTab, setActiveSubTab] = useState<'map' | 'media' | 'advance'>('map');
@@ -48,7 +75,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Button mapping (for Advance tab)
-  const [buttonMappings, setButtonMappings] = useState<Record<number, { type: 'static' | 'payload', value: string }>>({});
+  const [buttonMappings, setButtonMappings] = useState<Record<number, { type: 'static' | 'payload' | 'upload', value: string }>>({});
 
   const [saving, setSaving] = useState(false);
 
@@ -80,7 +107,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
       setConditions(Array.isArray(condsObj.rules) ? condsObj.rules : []);
 
       const actionsList = workflow.actions || [];
-      const templateAct = actionsList.find((a: any) => a.type === 'send_template');
+      const templateAct = actionsList.find((a) => a.type === 'send_template');
       if (templateAct) {
         // Find template by name
         setSelectedTemplateId(templateAct.template_name || '');
@@ -88,7 +115,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
         // Load mappings
         const bodyM = templateAct.mappings?.body || [];
         setBodyMappings(
-          bodyM.map((m: any, idx: number) => ({
+          bodyM.map((m, idx: number) => ({
             index: idx + 1,
             type: m.type || 'payload',
             value: m.value || ''
@@ -118,7 +145,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
 
         // Load button mappings
         const buttonsMap = templateAct.mappings?.buttons || {};
-        const bMappings: Record<number, { type: 'static' | 'payload', value: string }> = {};
+        const bMappings: Record<number, { type: 'static' | 'payload' | 'upload', value: string }> = {};
         for (const key in buttonsMap) {
           const idx = parseInt(key, 10);
           if (!isNaN(idx)) {
@@ -181,7 +208,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
 
     const bMappings: Record<number, { type: 'static' | 'payload', value: string }> = {};
     if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-      tmpl.buttons.forEach((_: any, idx: number) => {
+      tmpl.buttons.forEach((_, idx: number) => {
         bMappings[idx] = { type: 'static', value: '' };
       });
     }
@@ -282,8 +309,8 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
       setMediaUploadUrl(publicUrl);
       setMediaFileName(file.name);
       toast.success('File uploaded successfully.');
-    } catch (err: any) {
-      toast.error(err.message || 'Upload failed.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
       setMediaUploading(false);
     }
@@ -330,7 +357,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
             mappings: {
               body: bodyMappings.map((m) => ({ type: m.type, value: m.value })),
               headerText: headerMapping ? { type: headerMapping.type, value: headerMapping.value } : null,
-              headerMedia: ['image', 'video', 'document'].includes(selectedTmpl?.header_type) ? {
+              headerMedia: ['image', 'video', 'document'].includes(selectedTmpl?.header_type || '') ? {
                 type: mediaSourceType,
                 filename: mediaFileName || null,
                 value: mediaSourceType === 'payload'
@@ -340,7 +367,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                   : mediaLink
               } : null,
               buttons: selectedTmpl?.buttons?.length ? Object.fromEntries(
-                selectedTmpl.buttons.map((btn: any, idx: number) => [
+                selectedTmpl.buttons.map((btn, idx: number) => [
                   idx,
                   {
                     type: buttonMappings[idx]?.type || 'static',
@@ -369,8 +396,8 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
 
       toast.success(isEditing ? 'Workflow updated.' : 'Workflow created.');
       onSave();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred.');
     } finally {
       setSaving(false);
     }
@@ -378,7 +405,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
 
   const selectedTmpl = templates.find((t) => t.name === selectedTemplateId);
 
-  const getSubstitutedText = (text: string, mappings: any[]) => {
+  const getSubstitutedText = (text: string, mappings: { index: number; type: string; value: string }[]) => {
     if (!text) return '';
     return text.replace(/\{\{(\d+)\}\}/g, (_, numStr) => {
       const index = parseInt(numStr, 10);
@@ -406,7 +433,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
     });
   };
 
-  const getSubstitutedHeader = (headerText: string, mapping: any) => {
+  const getSubstitutedHeader = (headerText: string, mapping: { type: string; value: string } | null) => {
     if (!headerText) return '';
     if (!mapping) return headerText;
     return headerText.replace(/\{\{1\}\}/g, () => {
@@ -536,7 +563,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
               <div className="flex items-center gap-3">
                 <select
                   value={matchType}
-                  onChange={(e) => setMatchType(e.target.value as any)}
+                  onChange={(e) => setMatchType(e.target.value as 'all' | 'any')}
                   className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none"
                 >
                   <option value="all">Match All Conditions</option>
@@ -571,7 +598,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
 
                     <select
                       value={cond.operator}
-                      onChange={(e) => updateCondition(idx, 'operator', e.target.value as any)}
+                      onChange={(e) => updateCondition(idx, 'operator', e.target.value as WebhookCondition['operator'])}
                       className="w-36 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
                     >
                       <option value="equals">Equals</option>
@@ -634,7 +661,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
               </div>
 
               {selectedTmpl && (() => {
-                const hasMediaHeader = ['image', 'video', 'document'].includes(selectedTmpl.header_type);
+                const hasMediaHeader = ['image', 'video', 'document'].includes(selectedTmpl.header_type || '');
                 const hasButtons = !!(selectedTmpl.buttons && selectedTmpl.buttons.length > 0);
 
                 let previewImageUrl = '';
@@ -691,7 +718,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                                   />
                                 ) : (
                                   <div className="flex flex-col items-center gap-1.5 text-slate-550 dark:text-slate-500 p-4">
-                                    <Image className="h-5 w-5" />
+                                    <ImageIcon className="h-5 w-5" />
                                     <span className="text-[10px]">No image mapped</span>
                                   </div>
                                 )}
@@ -726,7 +753,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                           {/* Interactive Buttons Preview */}
                           {hasButtons && (
                             <div className="max-w-[90%] self-start w-full mt-1.5 space-y-1.5">
-                              {selectedTmpl.buttons.map((btn: any, idx: number) => {
+                              {selectedTmpl.buttons?.map((btn: import('@/types').TemplateButton, idx: number) => {
                                 const btnMapping = buttonMappings[idx];
                                 let payloadPreview = '';
                                 if (btnMapping) {
@@ -817,7 +844,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                               <div className="flex items-center gap-2">
                                 <select
                                   value={headerMapping.type}
-                                  onChange={(e) => setHeaderMapping({ ...headerMapping, type: e.target.value })}
+                                  onChange={(e) => setHeaderMapping({ ...headerMapping, type: e.target.value as 'payload' | 'static' | 'upload' })}
                                   className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none w-36"
                                 >
                                   <option value="payload">Payload Field</option>
@@ -972,7 +999,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">Media Source</label>
                             <select
                               value={mediaSourceType}
-                              onChange={(e) => setMediaSourceType(e.target.value as any)}
+                              onChange={(e) => setMediaSourceType(e.target.value as 'static' | 'payload' | 'upload')}
                               className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none"
                             >
                               <option value="static">Paste a link (Static URL)</option>
@@ -1092,12 +1119,12 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                           <div>
                             <span className="text-xs font-semibold text-slate-900 dark:text-slate-350 block mb-1">Button Payloads</span>
                             <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                              In your WhatsApp Templates, if you've incorporated buttons, the payload serves as a trigger or intent for a flow, activating the flow upon selection.
+                              In your WhatsApp Templates, if you&apos;ve incorporated buttons, the payload serves as a trigger or intent for a flow, activating the flow upon selection.
                             </p>
                           </div>
 
                           <div className="space-y-3">
-                            {selectedTmpl.buttons.map((btn: any, idx: number) => (
+                            {selectedTmpl.buttons?.map((btn: import('@/types').TemplateButton, idx: number) => (
                               <div key={idx} className="space-y-1.5 p-3 rounded-lg bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/85">
                                 <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                                   <span>{`Button ${idx + 1}: "${btn.text}" (${btn.type})`}</span>
@@ -1107,7 +1134,7 @@ export function EditWorkflowModal({ workflow, lastPayload, onClose, onSave }: Ed
                                 <div className="flex items-center gap-2">
                                   <select
                                     value={buttonMappings[idx]?.type || 'static'}
-                                    onChange={(e) => updateButtonMapping(idx, 'type', e.target.value as any)}
+                                    onChange={(e) => updateButtonMapping(idx, 'type', e.target.value as 'static' | 'payload')}
                                     className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none w-36"
                                   >
                                     <option value="static">Static Text</option>

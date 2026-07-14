@@ -13,7 +13,7 @@ export function WebhookConfiguration() {
   const [selectedChannel, setSelectedChannel] = useState('');
   const [channels, setChannels] = useState<{ id: string; display_phone_number: string }[]>([]);
   const [integrationId, setIntegrationId] = useState<string | null>(null);
-  const [lastPayload, setLastPayload] = useState<any>(null);
+  const [lastPayload, setLastPayload] = useState<Record<string, unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +57,7 @@ export function WebhookConfiguration() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [supabase]);
 
   const handleSave = async () => {
     if (!integrationName) {
@@ -84,8 +84,8 @@ export function WebhookConfiguration() {
       setIntegrationId(data.config.id);
       setLastPayload(data.config.last_payload);
       toast.success('Webhook settings updated.');
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred.');
     } finally {
       setSaving(false);
     }

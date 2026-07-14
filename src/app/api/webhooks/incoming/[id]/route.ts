@@ -16,6 +16,53 @@ import {
   isRecipientNotAllowedError
 } from '@/lib/whatsapp/phone-utils';
 
+interface WebhookWorkflow {
+  id: string;
+  account_id: string;
+  integration_id: string;
+  name: string;
+  recipient_name_field: string;
+  recipient_phone_field: string;
+  recipient_email_field: string | null;
+  conditions: {
+    matchType?: 'all' | 'any';
+    rules?: WebhookCondition[];
+  } | null;
+  actions: {
+    type: string;
+    template_name: string;
+    language?: string;
+    mappings?: {
+      body?: import('@/lib/generic-webhooks/utils').WebhookMapping[];
+      headerText?: import('@/lib/generic-webhooks/utils').WebhookMapping;
+      headerMedia?: import('@/lib/generic-webhooks/utils').WebhookMapping;
+      buttons?: Record<string, import('@/lib/generic-webhooks/utils').WebhookMapping>;
+    };
+  }[] | null;
+  is_active: boolean;
+  create_contacts?: boolean;
+}
+
+interface WebhookIntegration {
+  id: string;
+  account_id: string;
+  name: string;
+  whatsapp_config_id: string | null;
+  is_connected: boolean;
+  last_payload: unknown;
+}
+
+interface Contact {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}
+
+interface Conversation {
+  id: string;
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -23,11 +70,11 @@ export async function POST(
   const { id: workflowId } = await context.params;
   const db = supabaseAdmin();
 
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
   try {
     const rawBody = await request.text();
     if (rawBody) {
-      payload = JSON.parse(rawBody);
+      payload = JSON.parse(rawBody) as Record<string, unknown>;
     }
   } catch (e) {
     console.error('[webhooks] failed to parse incoming body as JSON:', e);
@@ -116,8 +163,8 @@ export async function POST(
         try {
           const res = await executeWorkflow(wf, integrationRow, payload);
           results.push({ workflow: wf.name, status: 'success', details: res });
-        } catch (err: any) {
-          results.push({ workflow: wf.name, status: 'failed', error: err.message });
+        } catch (err) {
+          results.push({ workflow: wf.name, status: 'failed', error: err instanceof Error ? err.message : String(err) });
         }
       }
 
@@ -126,7 +173,7 @@ export async function POST(
 
     console.warn('[webhooks] workflow/integration not found for id:', workflowId);
     return NextResponse.json({ error: 'Workflow or Integration not found' }, { status: 404 });
-  } catch (error: any) {
+  } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown execution error';
     console.error('[webhooks] incoming trigger failed:', errorMsg);
 
@@ -150,7 +197,7 @@ export async function POST(
 }
 
 // Single workflow execution runner
-async function executeWorkflow(workflow: any, integration: any, payload: any) {
+async function executeWorkflow(workflow: WebhookWorkflow, integration: WebhookIntegration, payload: Record<string, unknown> | null) {
   const db = supabaseAdmin();
   let customerPhone = '';
   let customerName = '';
@@ -224,7 +271,7 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
 
     // 4. Execute actions (e.g. Send template)
     const actions = workflow.actions || [];
-    const templateAction = actions.find((act: any) => act.type === 'send_template');
+    const templateAction = actions.find((act) => act.type === 'send_template');
 
     if (!templateAction) {
       throw new Error('No template action defined for this workflow.');
@@ -247,7 +294,7 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
     
     // Meta requires non-empty strings for all parameter values. If a mapped field is missing/empty, fallback to a space ' '
     const bodyParams = Array.isArray(mappings.body)
-      ? mappings.body.map((m: any) => {
+      ? mappings.body.map((m) => {
           const val = resolveMapping(payload, m);
           return val ? val.trim() : ' ';
         })
@@ -281,8 +328,8 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
     const adminUserId = config.user_id;
 
     // 5. Resolve / create Contact & Conversation based on toggle
-    let contact: any = null;
-    let conversation: any = null;
+    let contact: Contact | null = null;
+    let conversation: Conversation | null = null;
     const shouldCreateContacts = workflow.create_contacts !== false;
 
     if (shouldCreateContacts) {
@@ -293,12 +340,12 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
         customerName,
         customerEmail
       );
-      if (contactOutcome) {
+      if (contactOutcome && contactOutcome.contact) {
         contact = contactOutcome.contact;
         conversation = await findOrCreateConversation(
           workflow.account_id,
           adminUserId,
-          contact.id
+          contactOutcome.contact.id
         );
       }
     } else {
@@ -306,7 +353,7 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
       const existingContact = await findExistingContact(db, workflow.account_id, sanitizedPhone);
       if (existingContact) {
         contact = existingContact;
-        const updateFields: any = {};
+        const updateFields: Partial<Contact> & { updated_at?: string } = {};
         if (customerName && customerName !== existingContact.name) {
           updateFields.name = customerName;
         }
@@ -405,7 +452,7 @@ async function executeWorkflow(workflow: any, integration: any, payload: any) {
     });
 
     return { success: true, message_id: waMessageId };
-  } catch (error: any) {
+  } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[webhooks] executeWorkflow ${workflow.name} failed:`, errorMsg);
     
@@ -442,7 +489,7 @@ async function findOrCreateContact(
   const existingContact = await findExistingContact(db, accountId, phone);
 
   if (existingContact) {
-    const updateFields: any = {};
+    const updateFields: Partial<Contact> & { updated_at?: string } = {};
     if (name && name !== existingContact.name) {
       updateFields.name = name;
     }

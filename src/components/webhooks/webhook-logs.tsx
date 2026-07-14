@@ -5,8 +5,19 @@ import { format } from 'date-fns';
 import { RefreshCw, Play, CheckCircle, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+interface WebhookLog {
+  id: string;
+  workflow_name: string;
+  status: 'success' | 'failed' | 'no_match';
+  created_at: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  error_message?: string | null;
+  payload?: unknown;
+}
+
 export function WebhookLogs() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<WebhookLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 

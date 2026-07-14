@@ -17,13 +17,13 @@ export interface WebhookMapping {
  * Resolves a nested key in a JSON object using dot notation.
  * e.g., getNestedValue({ customer: { name: 'John' } }, 'customer.name') => 'John'
  */
-export function getNestedValue(obj: any, path: string): any {
+export function getNestedValue(obj: unknown, path: string): unknown {
   if (!obj || !path) return undefined;
   const parts = path.split('.');
-  let current = obj;
+  let current: unknown = obj;
   for (const part of parts) {
-    if (current === null || current === undefined) return undefined;
-    current = current[part];
+    if (current === null || current === undefined || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
   }
   return current;
 }
@@ -32,19 +32,21 @@ export function getNestedValue(obj: any, path: string): any {
  * Flattens a nested JSON object into a list of dotted paths.
  * e.g., { a: { b: 1 } } => ['a.b']
  */
-export function extractJsonPaths(obj: any, prefix = ''): string[] {
+export function extractJsonPaths(obj: unknown, prefix = ''): string[] {
   if (obj === null || obj === undefined) return [];
   if (typeof obj !== 'object') return [];
   
-  let paths: string[] = [];
+  const paths: string[] = [];
   
-  for (const key in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+  const record = obj as Record<string, unknown>;
+  for (const key in record) {
+    if (!Object.prototype.hasOwnProperty.call(record, key)) continue;
     const path = prefix ? `${prefix}.${key}` : key;
+    const value = record[key];
     
     // Check if the current value is a nested non-array object
-    if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-      paths.push(...extractJsonPaths(obj[key], path));
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      paths.push(...extractJsonPaths(value, path));
     } else {
       paths.push(path);
     }
@@ -57,7 +59,7 @@ export function extractJsonPaths(obj: any, prefix = ''): string[] {
  * Evaluates whether an incoming payload matches the specified conditions.
  */
 export function evaluateConditions(
-  payload: any,
+  payload: unknown,
   conditions: WebhookCondition[],
   matchType: 'all' | 'any' = 'all'
 ): boolean {
@@ -94,7 +96,7 @@ export function evaluateConditions(
 /**
  * Resolves template parameter mappings against an incoming payload.
  */
-export function resolveMapping(payload: any, mapping: WebhookMapping): string {
+export function resolveMapping(payload: unknown, mapping: WebhookMapping): string {
   if (!mapping) return '';
   if (mapping.type === 'upload') {
     return mapping.value;
