@@ -84,6 +84,15 @@ export function WhatsAppConfig() {
   const [registrationProbe, setRegistrationProbe] =
     useState<RegistrationProbe | null>(null);
 
+  type MetaPhoneInfo = {
+    id: string;
+    display_phone_number: string;
+    verified_name?: string;
+    quality_rating?: string;
+    whatsapp_business_manager_messaging_limit?: string;
+  };
+  const [phoneInfo, setPhoneInfo] = useState<MetaPhoneInfo | null>(null);
+
   const webhookUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/api/whatsapp/webhook`
@@ -136,19 +145,23 @@ export function WhatsAppConfig() {
 
           if (payload.connected) {
             setConnectionStatus('connected');
+            setPhoneInfo(payload.phone_info || null);
             setResetReason(null);
             setStatusMessage('');
           } else {
             setConnectionStatus('disconnected');
+            setPhoneInfo(null);
             setResetReason(payload.needs_reset ? 'token_corrupted' : payload.reason === 'meta_api_error' ? 'meta_api_error' : null);
             setStatusMessage(payload.message || '');
           }
         } catch (err) {
           console.error('Health check failed:', err);
           setConnectionStatus('disconnected');
+          setPhoneInfo(null);
         }
       } else {
         setConnectionStatus('disconnected');
+        setPhoneInfo(null);
         setResetReason(null);
         setStatusMessage('');
       }
@@ -282,6 +295,7 @@ export function WhatsAppConfig() {
 
       if (payload.connected) {
         setConnectionStatus('connected');
+        setPhoneInfo(payload.phone_info || null);
         setResetReason(null);
         setStatusMessage('');
         toast.success(
@@ -291,6 +305,7 @@ export function WhatsAppConfig() {
         );
       } else {
         setConnectionStatus('disconnected');
+        setPhoneInfo(null);
         setResetReason(payload.needs_reset ? 'token_corrupted' : payload.reason === 'meta_api_error' ? 'meta_api_error' : null);
         setStatusMessage(payload.message || '');
         toast.error(payload.message || 'API connection failed');
@@ -355,6 +370,7 @@ export function WhatsAppConfig() {
       setVerifyToken('');
       setTokenEdited(false);
       setConnectionStatus('disconnected');
+      setPhoneInfo(null);
       setResetReason(null);
       setStatusMessage('');
     } catch (err) {
@@ -459,6 +475,57 @@ export function WhatsAppConfig() {
                 t('notConnectedDesc')}
           </AlertDescription>
         </Alert>
+
+        {/* Messaging Status & Limits */}
+        {connectionStatus === 'connected' && phoneInfo && (
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-foreground text-sm font-semibold flex items-center gap-2">
+                <Zap className="size-4 text-primary" />
+                {t('messagingLimits')}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground text-xs">
+                {t('messagingLimitsDesc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-muted/40 border border-border/50 p-3">
+                <p className="text-xs text-muted-foreground font-medium">{t('dailyLimit')}</p>
+                <p className="mt-1 text-lg font-bold text-foreground">
+                  {phoneInfo.whatsapp_business_manager_messaging_limit
+                    ? phoneInfo.whatsapp_business_manager_messaging_limit.replace('TIER_', '')
+                    : '250'}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t('dailyLimitDesc')}</p>
+              </div>
+
+              <div className="rounded-lg bg-muted/40 border border-border/50 p-3">
+                <p className="text-xs text-muted-foreground font-medium">{t('qualityRating')}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`inline-block size-2 rounded-full ${
+                    phoneInfo.quality_rating === 'GREEN'
+                      ? 'bg-emerald-500'
+                      : phoneInfo.quality_rating === 'YELLOW'
+                      ? 'bg-amber-500'
+                      : 'bg-red-500'
+                  }`} />
+                  <p className="text-base font-bold text-foreground">
+                    {phoneInfo.quality_rating || 'UNKNOWN'}
+                  </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t('qualityRatingDesc')}</p>
+              </div>
+
+              <div className="rounded-lg bg-muted/40 border border-border/50 p-3">
+                <p className="text-xs text-muted-foreground font-medium">{t('verifiedName')}</p>
+                <p className="mt-1 text-sm font-bold text-foreground truncate" title={phoneInfo.verified_name}>
+                  {phoneInfo.verified_name || 'Not Available'}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t('verifiedNameDesc')}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Registration Status — the "is it actually live?" check.
             Credentials being valid is necessary but not sufficient;

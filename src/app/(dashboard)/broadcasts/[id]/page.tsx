@@ -32,6 +32,14 @@ import {
   Download,
   ChevronDown,
   Trash2,
+  Copy,
+  ExternalLink,
+  Info,
+  Check,
+  Reply,
+  XCircle,
+  RefreshCw,
+  RotateCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -118,6 +126,8 @@ const RECIPIENT_STATUSES: readonly RecipientStatus[] = [
   'delivered',
   'read',
   'replied',
+  'not_in_whatsapp',
+  'frequency_limit',
   'failed',
 ];
 
@@ -142,6 +152,64 @@ function downloadBlob(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+function getInitials(name?: string) {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function renderStatusValue(status: string) {
+  const label = status.toUpperCase().replace(/_/g, ' ');
+  let icon: React.ReactNode = null;
+  let colorClass = "text-muted-foreground";
+
+  switch (status) {
+    case 'sent':
+      icon = <Check className="h-3.5 w-3.5" />;
+      colorClass = "text-muted-foreground";
+      break;
+    case 'delivered':
+      icon = <CheckCheck className="h-3.5 w-3.5" />;
+      colorClass = "text-muted-foreground";
+      break;
+    case 'read':
+      icon = <CheckCheck className="h-3.5 w-3.5 text-blue-500" />;
+      colorClass = "text-blue-500 font-semibold";
+      break;
+    case 'replied':
+      icon = <Reply className="h-3.5 w-3.5 text-purple-400" />;
+      colorClass = "text-purple-400 font-semibold";
+      break;
+    case 'not_in_whatsapp':
+      icon = <AlertCircle className="h-3.5 w-3.5 text-orange-400" />;
+      colorClass = "text-orange-400 font-semibold";
+      break;
+    case 'frequency_limit':
+      icon = <AlertCircle className="h-3.5 w-3.5 text-amber-400" />;
+      colorClass = "text-amber-400 font-semibold";
+      break;
+    case 'unsubscribed':
+      icon = <XCircle className="h-3.5 w-3.5 text-pink-400" />;
+      colorClass = "text-pink-400 font-semibold";
+      break;
+    case 'failed':
+      icon = <AlertCircle className="h-3.5 w-3.5 text-red-500" />;
+      colorClass = "text-red-500 font-semibold";
+      break;
+    default:
+      icon = null;
+      colorClass = "text-muted-foreground";
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 text-xs ${colorClass}`}>
+      {icon}
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export default function BroadcastDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -158,6 +226,7 @@ export default function BroadcastDetailPage() {
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [creatorName, setCreatorName] = useState<string>('');
 
   useEffect(() => {
     async function fetchData() {
@@ -172,6 +241,17 @@ export default function BroadcastDetailPage() {
 
         if (bcError) throw bcError;
         setBroadcast(bc);
+
+        if (bc.user_id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', bc.user_id)
+            .maybeSingle();
+          if (prof?.full_name) {
+            setCreatorName(prof.full_name);
+          }
+        }
 
         const { data: recs, error: recsError } = await supabase
           .from('broadcast_recipients')
@@ -272,6 +352,11 @@ export default function BroadcastDetailPage() {
     { label: t('stats.replied'), value: broadcast.replied_count, color: 'bg-indigo-500' },
   ];
 
+  const displayStatusLabel = broadcast.status === 'sent' ? 'COMPLETED' : status.label.toUpperCase();
+  const displayStatusClasses = broadcast.status === 'sent'
+    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    : status.classes;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -289,67 +374,157 @@ export default function BroadcastDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">{broadcast.name}</h1>
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${displayStatusClasses}`}
               >
-                {tStatus(status.label)}
+                {displayStatusLabel}
               </span>
             </div>
             <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>{t('template', { name: broadcast.template_name })}</span>
-              <span>-</span>
+              <span>{creatorName || 'System'}</span>
+              <span>|</span>
               <span>
-                {t('createdAt', { date: new Date(broadcast.created_at).toLocaleDateString() })}
+                {new Date(broadcast.created_at).toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Delete — inline-confirm pattern matches the pipeline-settings
-            "Delete Pipeline" flow. Mid-send broadcasts can't be deleted
-            because orphaning in-flight Meta messages would leave the
-            funnel inconsistent. */}
-        {confirmDelete ? (
-          <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
-            <span className="text-red-300">{t('deletePrompt')}</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="border-border text-xs gap-1.5 text-muted-foreground hover:bg-muted">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Repeat Broadcast
+          </Button>
+          <Button size="sm" className="bg-primary text-white text-xs gap-1.5 hover:bg-primary/95">
+            <RotateCw className="h-3.5 w-3.5" />
+            Sync
+          </Button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
+              <span className="text-red-300">{t('deletePrompt')}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="h-7 border-border bg-transparent text-muted-foreground hover:bg-muted"
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="h-7 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? t('deleting') : t('confirm')}
+              </Button>
+            </div>
+          ) : (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setConfirmDelete(false)}
-              disabled={deleting}
-              className="h-7 border-border bg-transparent text-muted-foreground hover:bg-muted"
+              disabled={broadcast.status === 'sending'}
+              onClick={() => setConfirmDelete(true)}
+              title={
+                broadcast.status === 'sending'
+                  ? t('cannotDeleteSending')
+                  : t('deleteHover')
+              }
+              className="border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 disabled:opacity-40"
             >
-              {t('cancel')}
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('delete')}
             </Button>
-            <Button
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="h-7 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {deleting ? t('deleting') : t('confirm')}
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={broadcast.status === 'sending'}
-            onClick={() => setConfirmDelete(true)}
-            title={
-              broadcast.status === 'sending'
-                ? t('cannotDeleteSending')
-                : t('deleteHover')
-            }
-            className="border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('delete')}
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Metadata Panel */}
+      <div className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 md:grid-cols-5 text-sm">
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">Scheduled For</p>
+          <p className="mt-1 font-semibold text-foreground">
+            {broadcast.scheduled_at 
+              ? new Date(broadcast.scheduled_at).toLocaleString(undefined, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'Immediate'}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">Message Template</p>
+          <div className="mt-1 flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="truncate max-w-[140px]" title={broadcast.template_name}>{broadcast.template_name}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                navigator.clipboard.writeText(broadcast.template_name);
+                toast.success('Template name copied to clipboard');
+              }}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">Target Audience</p>
+          <div className="mt-1 flex items-center gap-1.5 font-semibold text-foreground text-primary">
+            <span className="truncate max-w-[140px]">
+              {(broadcast.audience_filter?.filename as string) || 'broadcast_audience.csv'}
+            </span>
+            <Download className="h-3.5 w-3.5 shrink-0 cursor-pointer" />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">Reply Settings</p>
+          <div className="mt-1 flex items-center gap-1 font-semibold text-muted-foreground hover:text-foreground cursor-pointer">
+            <span>Learn more</span>
+            <ExternalLink className="h-3 w-3" />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">Spend Estimate</p>
+          <div className="mt-1 flex items-center gap-1 font-semibold text-foreground">
+            <span>₹{(broadcast.sent_count * 0.12).toFixed(2)}</span>
+            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" />
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Section Header */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground">Stats</h2>
+          <span className="text-xs text-muted-foreground hover:underline cursor-pointer flex items-center gap-0.5">
+            Learn more <ExternalLink className="h-3 w-3" />
+          </span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={recipients.length === 0}
+          className="border-border text-xs gap-1.5"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download Report
+        </Button>
+      </div>
+
+      {/* Stats — 8 cards: Total / Sent / Delivered / Read / Replied / Not in WhatsApp / Frequency Limit / Failed */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         <StatCard
           label={t('stats.totalRecipients')}
           value={broadcast.total_recipients}
@@ -384,6 +559,20 @@ export default function BroadcastDetailPage() {
           total={broadcast.total_recipients}
           icon={<MessageCircle className="h-4 w-4" />}
           color="bg-indigo-500/10 text-indigo-400"
+        />
+        <StatCard
+          label={t('stats.notInWhatsapp')}
+          value={broadcast.not_in_whatsapp_count || 0}
+          total={broadcast.total_recipients}
+          icon={<AlertCircle className="h-4 w-4" />}
+          color="bg-orange-500/10 text-orange-400"
+        />
+        <StatCard
+          label={t('stats.frequencyLimit')}
+          value={broadcast.frequency_limit_count || 0}
+          total={broadcast.total_recipients}
+          icon={<AlertCircle className="h-4 w-4" />}
+          color="bg-amber-500/10 text-amber-400"
         />
         <StatCard
           label={t('stats.failed')}
@@ -445,17 +634,6 @@ export default function BroadcastDetailPage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={recipients.length === 0}
-              className="border-border text-muted-foreground hover:bg-muted"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('exportCsv')}
-            </Button>
           </div>
         </div>
 
@@ -472,50 +650,28 @@ export default function BroadcastDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">{t('table.contact')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.phone')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.status')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.sent')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.delivered')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.read')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.error')}</TableHead>
+                  <TableHead className="text-muted-foreground">RECIPIENT NAME</TableHead>
+                  <TableHead className="text-muted-foreground">PHONE</TableHead>
+                  <TableHead className="text-muted-foreground">MESSAGE STATUS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRecipients.map((recipient) => {
-                  const rStatus = getRecipientStatus(recipient.status);
+                  const contactName = recipient.contact?.name ?? 'guest';
+                  const initials = getInitials(contactName);
                   return (
                     <TableRow key={recipient.id} className="border-border">
-                      <TableCell className="font-medium text-foreground">
-                        {recipient.contact?.name ?? 'Unknown'}
+                      <TableCell className="font-medium text-foreground flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          {initials}
+                        </div>
+                        <span>{contactName}</span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {recipient.contact?.phone ?? '-'}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${rStatus.classes}`}
-                        >
-                          {tStatus(rStatus.label)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.sent_at
-                          ? new Date(recipient.sent_at).toLocaleString()
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.delivered_at
-                          ? new Date(recipient.delivered_at).toLocaleString()
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.read_at
-                          ? new Date(recipient.read_at).toLocaleString()
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-xs text-red-400">
-                        {recipient.error_message ?? '-'}
+                        {renderStatusValue(recipient.status)}
                       </TableCell>
                     </TableRow>
                   );

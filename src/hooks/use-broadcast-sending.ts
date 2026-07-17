@@ -521,25 +521,124 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
                   error_message: null,
                 })
                 .eq('id', recipient.id);
+
+              // Resolve/create conversation + insert message to inbox
+              if (recipient.contact?.id) {
+                try {
+                  const { data: existingConvs } = await supabase
+                    .from('conversations')
+                    .select('id')
+                    .eq('account_id', accountId)
+                    .eq('contact_id', recipient.contact.id)
+                    .order('created_at', { ascending: true })
+                    .limit(1);
+
+                  let conversationId: string;
+                  if (existingConvs && existingConvs.length > 0) {
+                    conversationId = existingConvs[0].id;
+                  } else {
+                    const { data: newConv, error: convErr } = await supabase
+                      .from('conversations')
+                      .insert({
+                        account_id: accountId,
+                        user_id: user.id,
+                        contact_id: recipient.contact.id,
+                      })
+                      .select('id')
+                      .single();
+
+                    if (convErr || !newConv) {
+                      const { data: raced } = await supabase
+                        .from('conversations')
+                        .select('id')
+                        .eq('account_id', accountId)
+                        .eq('contact_id', recipient.contact.id)
+                        .order('created_at', { ascending: true })
+                        .limit(1);
+                      if (raced && raced.length > 0) {
+                        conversationId = raced[0].id;
+                      } else {
+                        throw convErr || new Error('Failed to resolve conversation');
+                      }
+                    } else {
+                      conversationId = newConv.id;
+                    }
+                  }
+
+                  const params = resolveVariables(
+                    payload.variables,
+                    recipient.contact,
+                    customValueIndex.get(recipient.contact.id)
+                  );
+                  let contentText = payload.template.body_text || `[Template: ${payload.template.name}]`;
+                  if (payload.template.body_text && params.length > 0) {
+                    params.forEach((param, index) => {
+                      contentText = contentText.replace(new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'), param);
+                    });
+                  }
+
+                  const { error: msgErr } = await supabase
+                    .from('messages')
+                    .insert({
+                      conversation_id: conversationId,
+                      sender_type: 'agent',
+                      content_type: 'template',
+                      content_text: contentText,
+                      template_name: payload.template.name,
+                      message_id: result.whatsapp_message_id,
+                      status: 'sent',
+                    });
+
+                  if (!msgErr) {
+                    await supabase
+                      .from('conversations')
+                      .update({
+                        last_message_text: contentText,
+                        last_message_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', conversationId);
+                  }
+                } catch (err) {
+                  console.error('Failed to write broadcast message to inbox:', err);
+                }
+              }
             } else {
               failedCount++;
+              let finalStatus: 'failed' | 'not_in_whatsapp' | 'frequency_limit' = 'failed';
+              const errStr = (result.error ?? '').toLowerCase();
+              if (errStr.includes('131026') || errStr.includes('not on whatsapp') || errStr.includes('not a whatsapp user')) {
+                finalStatus = 'not_in_whatsapp';
+              } else if (errStr.includes('131056') || errStr.includes('frequency') || errStr.includes('rate limit') || errStr.includes('130429') || errStr.includes('limit exceeded')) {
+                finalStatus = 'frequency_limit';
+              }
+
               await supabase
                 .from('broadcast_recipients')
                 .update({
-                  status: 'failed',
+                  status: finalStatus,
                   error_message: result.error ?? 'Unknown error',
                 })
                 .eq('id', recipient.id);
             }
           }
         } catch (err) {
+          const errMsg = err instanceof Error ? err.message : 'Unknown error';
+          const errStr = errMsg.toLowerCase();
+          let finalStatus: 'failed' | 'not_in_whatsapp' | 'frequency_limit' = 'failed';
+          if (errStr.includes('131026') || errStr.includes('not on whatsapp') || errStr.includes('not a whatsapp user')) {
+            finalStatus = 'not_in_whatsapp';
+          } else if (errStr.includes('131056') || errStr.includes('frequency') || errStr.includes('rate limit') || errStr.includes('130429') || errStr.includes('limit exceeded')) {
+            finalStatus = 'frequency_limit';
+          }
+
           for (const recipient of batch) {
             failedCount++;
             await supabase
               .from('broadcast_recipients')
               .update({
-                status: 'failed',
-                error_message: err instanceof Error ? err.message : 'Unknown error',
+                status: finalStatus,
+                error_message: errMsg,
               })
               .eq('id', recipient.id);
           }

@@ -337,11 +337,11 @@ function ladderLevel(s: string): number {
  *     once the recipient has reached any of the success states.
  */
 function isValidStatusTransition(current: string, incoming: string): boolean {
-  if (incoming === 'failed') {
+  if (incoming === 'failed' || incoming === 'not_in_whatsapp' || incoming === 'frequency_limit') {
     return current === 'pending' || current === 'sent'
   }
-  if (current === 'failed') {
-    return false // failed is terminal
+  if (current === 'failed' || current === 'not_in_whatsapp' || current === 'frequency_limit') {
+    return false // terminal
   }
   const ci = ladderLevel(current)
   const ii = ladderLevel(incoming)
