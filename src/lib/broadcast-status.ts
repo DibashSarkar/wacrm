@@ -68,9 +68,21 @@ export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
     label: "replied",
     classes: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   },
+  not_in_whatsapp: {
+    label: "notInWhatsapp",
+    classes: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  },
+  frequency_limit: {
+    label: "frequencyLimit",
+    classes: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  },
   failed: {
     label: "failed",
     classes: "bg-red-500/10 text-red-400 border-red-500/20",
+  },
+  unsubscribed: {
+    label: "unsubscribed",
+    classes: "bg-pink-500/10 text-pink-400 border-pink-500/20",
   },
 };
 

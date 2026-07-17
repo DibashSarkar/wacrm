@@ -58,12 +58,15 @@ export interface CreateBroadcastParams {
 
 interface PlannedRecipient {
   recipientRowId: string;
+  contactId: string;
   phone: string;
   params: string[];
 }
 
 export interface BroadcastPlan {
   broadcastId: string;
+  accountId: string;
+  auditUserId: string;
   templateName: string;
   templateLanguage: string;
   phoneNumberId: string;
@@ -232,11 +235,13 @@ export async function createBroadcast(
   const byContact = new Map(deduped.map((r) => [r.contactId, r]));
   const planned: PlannedRecipient[] = recipientRows.map((row) => {
     const r = byContact.get(row.contact_id as string)!;
-    return { recipientRowId: row.id as string, phone: r.phone, params: r.params };
+    return { recipientRowId: row.id as string, contactId: row.contact_id as string, phone: r.phone, params: r.params };
   });
 
   return {
     broadcastId: broadcast.id,
+    accountId,
+    auditUserId,
     templateName,
     templateLanguage,
     phoneNumberId: config.phone_number_id,
@@ -306,11 +311,96 @@ export async function deliverBroadcast(
           error_message: null,
         })
         .eq('id', recipient.recipientRowId);
+
+      // Resolve/create conversation + insert to inbox
+      try {
+        const { data: existingConvs } = await db
+          .from('conversations')
+          .select('id')
+          .eq('account_id', plan.accountId)
+          .eq('contact_id', recipient.contactId)
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        let conversationId: string;
+        if (existingConvs && existingConvs.length > 0) {
+          conversationId = existingConvs[0].id;
+        } else {
+          const { data: newConv, error: convErr } = await db
+            .from('conversations')
+            .insert({
+              account_id: plan.accountId,
+              user_id: plan.auditUserId,
+              contact_id: recipient.contactId,
+            })
+            .select('id')
+            .single();
+
+          if (convErr || !newConv) {
+            const { data: raced } = await db
+              .from('conversations')
+              .select('id')
+              .eq('account_id', plan.accountId)
+              .eq('contact_id', recipient.contactId)
+              .order('created_at', { ascending: true })
+              .limit(1);
+            if (raced && raced.length > 0) {
+              conversationId = raced[0].id;
+            } else {
+              throw convErr || new Error('Failed to resolve conversation');
+            }
+          } else {
+            conversationId = newConv.id;
+          }
+        }
+
+        let contentText = plan.templateRow?.body_text || `[Template: ${plan.templateName}]`;
+        if (plan.templateRow?.body_text && recipient.params && recipient.params.length > 0) {
+          recipient.params.forEach((param, index) => {
+            contentText = contentText.replace(new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'), param);
+          });
+        }
+
+        const { error: msgErr } = await db
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_type: 'agent',
+            content_type: 'template',
+            content_text: contentText,
+            template_name: plan.templateName,
+            message_id: sentMessageId,
+            status: 'sent',
+          });
+
+        if (!msgErr) {
+          await db
+            .from('conversations')
+            .update({
+              last_message_text: contentText,
+              last_message_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversationId);
+        }
+      } catch (err) {
+        console.error('[broadcast-core] failed to write message to inbox:', err);
+      }
     } else {
+      let finalStatus: 'failed' | 'not_in_whatsapp' | 'frequency_limit' = 'failed';
+      if (lastError) {
+        const errStr = lastError.toLowerCase();
+        if (errStr.includes('131026') || errStr.includes('not on whatsapp') || errStr.includes('not a whatsapp user')) {
+          finalStatus = 'not_in_whatsapp';
+        } else if (errStr.includes('131056') || errStr.includes('frequency') || errStr.includes('rate limit') || errStr.includes('130429') || errStr.includes('limit exceeded')) {
+          finalStatus = 'frequency_limit';
+        }
+      }
+
       await db
         .from('broadcast_recipients')
         .update({
-          status: 'failed',
+          status: finalStatus,
           error_message: lastError || 'Unknown error',
         })
         .eq('id', recipient.recipientRowId);

@@ -381,7 +381,7 @@ export interface Deal {
 }
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
-export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed';
+export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed' | 'not_in_whatsapp' | 'frequency_limit' | 'unsubscribed';
 
 export interface Broadcast {
   id: string;
@@ -399,6 +399,9 @@ export interface Broadcast {
   read_count: number;
   replied_count: number;
   failed_count: number;
+  not_in_whatsapp_count: number;
+  frequency_limit_count: number;
+  unsubscribed_count: number;
   created_at: string;
 }
 

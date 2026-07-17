@@ -225,8 +225,14 @@ export default function BroadcastsPage() {
                 <TableHead className="hidden text-right text-muted-foreground sm:table-cell">
                   {t('table.recipients')}
                 </TableHead>
+                <TableHead className="hidden text-muted-foreground lg:table-cell">{t('table.sent')}</TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">{t('table.delivery')}</TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">{t('table.read')}</TableHead>
+                <TableHead className="hidden text-muted-foreground lg:table-cell">{t('table.engaged')}</TableHead>
+                <TableHead className="hidden text-muted-foreground xl:table-cell">{t('table.notInWhatsapp')}</TableHead>
+                <TableHead className="hidden text-muted-foreground xl:table-cell">{t('table.frequencyLimit')}</TableHead>
+                <TableHead className="hidden text-muted-foreground xl:table-cell">{t('table.unsubscribed')}</TableHead>
+                <TableHead className="hidden text-muted-foreground xl:table-cell">{t('table.failed')}</TableHead>
                 <TableHead className="text-muted-foreground">{t('table.status')}</TableHead>
                 <TableHead className="hidden text-muted-foreground sm:table-cell">{t('table.date')}</TableHead>
               </TableRow>
@@ -251,9 +257,16 @@ export default function BroadcastsPage() {
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <RateCell
+                        value={broadcast.sent_count}
+                        total={broadcast.total_recipients}
+                        color="bg-muted text-muted-foreground"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <RateCell
                         value={broadcast.delivered_count}
                         total={broadcast.total_recipients}
-                        color="bg-primary"
+                        color="bg-teal-500"
                       />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -261,6 +274,41 @@ export default function BroadcastsPage() {
                         value={broadcast.read_count}
                         total={broadcast.total_recipients}
                         color="bg-blue-500"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <RateCell
+                        value={broadcast.replied_count}
+                        total={broadcast.total_recipients}
+                        color="bg-indigo-500"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <RateCell
+                        value={broadcast.not_in_whatsapp_count || 0}
+                        total={broadcast.total_recipients}
+                        color="bg-orange-500"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <RateCell
+                        value={broadcast.frequency_limit_count || 0}
+                        total={broadcast.total_recipients}
+                        color="bg-amber-500"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <RateCell
+                        value={broadcast.unsubscribed_count || 0}
+                        total={broadcast.total_recipients}
+                        color="bg-pink-500"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <RateCell
+                        value={broadcast.failed_count}
+                        total={broadcast.total_recipients}
+                        color="bg-red-500"
                       />
                     </TableCell>
                     <TableCell>
