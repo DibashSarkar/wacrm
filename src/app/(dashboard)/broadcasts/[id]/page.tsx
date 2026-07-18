@@ -87,13 +87,14 @@ interface FunnelStep {
  * always render a full bar at the top and proportional tails.
  */
 function getGraphColor(twClass: string) {
-  if (twClass.includes('primary')) return 'hsl(var(--primary))';
-  if (twClass.includes('teal')) return '#14b8a6';
-  if (twClass.includes('blue')) return '#3b82f6';
-  if (twClass.includes('indigo')) return '#6366f1';
-  if (twClass.includes('emerald')) return '#10b981';
-  if (twClass.includes('red')) return '#ef4444';
-  return 'hsl(var(--primary))';
+  // Use explicit hex colors that match Tailwind 500/400 shades so they render reliably in Recharts SVGs
+  if (twClass.includes('primary')) return '#3b82f6'; // blue-500
+  if (twClass.includes('teal')) return '#14b8a6'; // teal-500
+  if (twClass.includes('blue')) return '#3b82f6'; // blue-500
+  if (twClass.includes('indigo')) return '#6366f1'; // indigo-500
+  if (twClass.includes('emerald')) return '#10b981'; // emerald-500
+  if (twClass.includes('red')) return '#ef4444'; // red-500
+  return '#3b82f6';
 }
 
 function FunnelChart({ steps }: { steps: FunnelStep[] }) {
@@ -104,16 +105,18 @@ function FunnelChart({ steps }: { steps: FunnelStep[] }) {
       <h3 className="mb-4 text-sm font-medium text-foreground">Funnel</h3>
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={safeSteps} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-            <XAxis type="number" hide />
-            <YAxis 
-              type="category" 
+          <BarChart data={safeSteps} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis 
               dataKey="label" 
               axisLine={false} 
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 13, fontWeight: 500 }}
-              width={100}
+              dy={10}
+            />
+            <YAxis 
+              type="number" 
+              hide 
             />
             <Tooltip 
               cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
@@ -132,7 +135,7 @@ function FunnelChart({ steps }: { steps: FunnelStep[] }) {
                 return null;
               }}
             />
-            <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60} label={{ position: 'top', fill: 'hsl(var(--foreground))', fontSize: 14, fontWeight: 600 }}>
               {safeSteps.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getGraphColor(entry.color)} />
               ))}
