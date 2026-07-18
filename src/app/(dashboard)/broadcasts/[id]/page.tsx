@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Broadcast, BroadcastRecipient, RecipientStatus } from '@/types';
 import { Button } from '@/components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import {
   Table,
   TableBody,
@@ -57,7 +59,8 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, total, icon, color }: StatCardProps) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const safeValue = value || 0;
+  const pct = total > 0 ? Math.round((safeValue / total) * 100) : 0;
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between">
@@ -66,7 +69,7 @@ function StatCard({ label, value, total, icon, color }: StatCardProps) {
         </div>
         <span className="text-xs text-muted-foreground">{pct}%</span>
       </div>
-      <p className="mt-3 text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
+      <p className="mt-3 text-2xl font-bold text-foreground">{safeValue.toLocaleString()}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
@@ -83,38 +86,59 @@ interface FunnelStep {
  * Width is relative to the largest step (typically Sent) so we
  * always render a full bar at the top and proportional tails.
  */
+function getGraphColor(twClass: string) {
+  if (twClass.includes('primary')) return 'hsl(var(--primary))';
+  if (twClass.includes('teal')) return '#14b8a6';
+  if (twClass.includes('blue')) return '#3b82f6';
+  if (twClass.includes('indigo')) return '#6366f1';
+  if (twClass.includes('emerald')) return '#10b981';
+  if (twClass.includes('red')) return '#ef4444';
+  return 'hsl(var(--primary))';
+}
+
 function FunnelChart({ steps }: { steps: FunnelStep[] }) {
-  const max = Math.max(...steps.map((s) => s.value), 1);
+  const safeSteps = steps.map((s) => ({ ...s, value: s.value || 0 }));
+  const max = Math.max(...safeSteps.map((s) => s.value), 1);
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h3 className="mb-4 text-sm font-medium text-foreground">Funnel</h3>
-      <div className="space-y-2">
-        {steps.map((step) => {
-          const pctOfMax = Math.max(5, Math.round((step.value / max) * 100));
-          const pctOfSent =
-            steps[0].value > 0
-              ? Math.round((step.value / steps[0].value) * 100)
-              : 0;
-          return (
-            <div key={step.label} className="flex items-center gap-3">
-              <span className="w-20 shrink-0 text-xs text-muted-foreground">
-                {step.label}
-              </span>
-              <div className="relative h-7 flex-1 rounded-full bg-muted">
-                <div
-                  className={`h-7 rounded-full ${step.color} transition-[width] duration-500`}
-                  style={{ width: `${pctOfMax}%` }}
-                />
-                <span className="absolute inset-0 flex items-center px-3 text-xs font-medium text-foreground">
-                  {step.value.toLocaleString()}
-                  <span className="ml-2 text-muted-foreground/80">
-                    ({pctOfSent}%)
-                  </span>
-                </span>
-              </div>
-            </div>
-          );
-        })}
+      <div className="h-72 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={safeSteps} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+            <XAxis type="number" hide />
+            <YAxis 
+              type="category" 
+              dataKey="label" 
+              axisLine={false} 
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 13, fontWeight: 500 }}
+              width={100}
+            />
+            <Tooltip 
+              cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  const pct = safeSteps[0].value > 0 ? Math.round((data.value / safeSteps[0].value) * 100) : 0;
+                  return (
+                    <div className="rounded-lg border border-border bg-popover p-3 shadow-md">
+                      <p className="font-medium text-popover-foreground">{data.label}</p>
+                      <p className="text-sm text-muted-foreground">{data.value.toLocaleString()} recipients</p>
+                      <p className="text-xs text-muted-foreground mt-1">({pct}% of sent)</p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
+              {safeSteps.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={getGraphColor(entry.color)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -661,11 +685,16 @@ export default function BroadcastDetailPage() {
                   const initials = getInitials(contactName);
                   return (
                     <TableRow key={recipient.id} className="border-border">
-                      <TableCell className="font-medium text-foreground flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                          {initials}
-                        </div>
-                        <span>{contactName}</span>
+                      <TableCell className="font-medium text-foreground">
+                        <Link 
+                          href={recipient.contact_id ? `/inbox?contactId=${recipient.contact_id}` : '#'}
+                          className="flex items-center gap-3 hover:underline"
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {initials}
+                          </div>
+                          <span>{contactName}</span>
+                        </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {recipient.contact?.phone ?? '-'}

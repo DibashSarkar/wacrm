@@ -259,7 +259,7 @@ export default function BroadcastsPage() {
                       <RateCell
                         value={broadcast.sent_count}
                         total={broadcast.total_recipients}
-                        color="bg-muted text-muted-foreground"
+                        color="bg-primary text-primary-foreground"
                       />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">

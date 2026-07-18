@@ -350,12 +350,30 @@ function isValidStatusTransition(current: string, incoming: string): boolean {
   return ii > ci
 }
 
+function mapWebhookStatus(statusObj: { status: string, errors?: any[] }): string {
+  let s = statusObj.status;
+  if (s === 'failed' && statusObj.errors && statusObj.errors.length > 0) {
+    const err = statusObj.errors[0];
+    const errStr = `${err.code} ${err.title || ''} ${err.message || ''}`.toLowerCase();
+
+    if (errStr.includes('131026') || errStr.includes('not on whatsapp') || errStr.includes('not a whatsapp user')) {
+      return 'not_in_whatsapp';
+    } else if (errStr.includes('131056') || errStr.includes('frequency') || errStr.includes('rate limit') || errStr.includes('130429') || errStr.includes('limit exceeded')) {
+      return 'frequency_limit';
+    }
+  }
+  return s;
+}
+
 async function handleStatusUpdate(status: {
   id: string
   status: string
   timestamp: string
   recipient_id: string
+  errors?: any[]
 }) {
+  const mappedStatus = mapWebhookStatus(status);
+
   // 1) Mirror onto messages (legacy behavior) — Meta's status values
   //    already match the CHECK constraint on messages.status. No
   //    `.select()`: message_id is NOT unique (migration 009 — Meta ids
@@ -363,7 +381,7 @@ async function handleStatusUpdate(status: {
   //    assume a single row.
   const { error: msgErr } = await supabaseAdmin()
     .from('messages')
-    .update({ status: status.status })
+    .update({ status: mappedStatus })
     .eq('message_id', status.id)
 
   if (msgErr) {
@@ -392,12 +410,12 @@ async function handleStatusUpdate(status: {
     recipient &&
     // Guard transitions — forward-only on the success ladder, and
     // `failed` only from pre-delivered states.
-    isValidStatusTransition(recipient.status, status.status)
+    isValidStatusTransition(recipient.status, mappedStatus)
   ) {
-    const update: Record<string, unknown> = { status: status.status }
-    if (status.status === 'sent' && !('sent_at' in update)) update.sent_at = tsIso
-    if (status.status === 'delivered') update.delivered_at = tsIso
-    if (status.status === 'read') update.read_at = tsIso
+    const update: Record<string, unknown> = { status: mappedStatus }
+    if (mappedStatus === 'sent' && !('sent_at' in update)) update.sent_at = tsIso
+    if (mappedStatus === 'delivered') update.delivered_at = tsIso
+    if (mappedStatus === 'read') update.read_at = tsIso
 
     const { error: recUpdateErr } = await supabaseAdmin()
       .from('broadcast_recipients')
@@ -431,7 +449,7 @@ async function handleStatusUpdate(status: {
         {
           whatsapp_message_id: status.id,
           conversation_id: msgRow.conversation_id,
-          status: status.status,
+          status: mappedStatus,
         }
       )
     }
