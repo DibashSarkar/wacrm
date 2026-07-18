@@ -125,8 +125,23 @@ export function ContactForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!phone.trim()) {
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
       toast.error(t('phoneRequired'));
+      return;
+    }
+
+    const digits = trimmedPhone.replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      toast.error('Invalid phone number: Please remove the leading zero and use your country code (e.g. 91...)');
+      return;
+    }
+    if (digits.length < 10) {
+      toast.error('Invalid phone number: Must include country code (e.g. 919876543210). Numbers without country codes are not allowed.');
+      return;
+    }
+    if (digits.length > 15) {
+      toast.error('Invalid phone number: Too long (max 15 digits)');
       return;
     }
 
@@ -149,12 +164,14 @@ export function ContactForm({
 
       let contactId = contact?.id;
 
+      const digits = phone.trim().replace(/\D/g, '');
+
       if (isEdit && contactId) {
         const { error } = await supabase
           .from('contacts')
           .update({
             name: name.trim() || null,
-            phone: phone.trim(),
+            phone: digits,
             email: email.trim() || null,
             company: company.trim() || null,
             updated_at: new Date().toISOString(),
@@ -168,7 +185,7 @@ export function ContactForm({
             user_id: user.id,
             account_id: accountId,
             name: name.trim() || null,
-            phone: phone.trim(),
+            phone: digits,
             email: email.trim() || null,
             company: company.trim() || null,
           })

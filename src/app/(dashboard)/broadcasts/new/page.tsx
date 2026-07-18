@@ -13,6 +13,7 @@ import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
 const steps = [
   { label: 'template', key: 'template' },
@@ -128,6 +129,19 @@ export default function NewBroadcastPage() {
     toast.success(t('toastDraftSaved'));
     router.push('/broadcasts');
   }
+
+  // Prevent user from leaving the page while broadcast is processing
+  useEffect(() => {
+    if (!isProcessing) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isProcessing]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">

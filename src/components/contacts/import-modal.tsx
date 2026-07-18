@@ -133,6 +133,7 @@ export function ImportModal({
 
   const [file, setFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedContactRow[]>([]);
+  const [invalidRows, setInvalidRows] = useState<ParsedContactRow[]>([]);
   const [hasTagsColumn, setHasTagsColumn] = useState(false);
   const [hasCompanyColumn, setHasCompanyColumn] = useState(false);
   const [tagColorByKey, setTagColorByKey] = useState<Map<string, string>>(
@@ -149,6 +150,7 @@ export function ImportModal({
   function reset() {
     setFile(null);
     setParsedRows([]);
+    setInvalidRows([]);
     setHasTagsColumn(false);
     setHasCompanyColumn(false);
     setTagColorByKey(new Map());
@@ -173,11 +175,13 @@ export function ImportModal({
       rows,
       hasTagsColumn: csvHasTags,
       hasCompanyColumn: csvHasCompany,
+      invalidRows: csvInvalidRows,
     } = parseContactCsv(text);
 
     if (rows.length === 0) {
       toast.error(t('toastNoValidRows'));
       setParsedRows([]);
+      setInvalidRows([]);
       setHasTagsColumn(false);
       setHasCompanyColumn(false);
       setTagColorByKey(new Map());
@@ -185,6 +189,7 @@ export function ImportModal({
     }
 
     setParsedRows(rows);
+    setInvalidRows(csvInvalidRows);
     setHasTagsColumn(csvHasTags);
     setHasCompanyColumn(csvHasCompany);
 
@@ -206,7 +211,7 @@ export function ImportModal({
   }
 
   async function handleImport() {
-    if (parsedRows.length === 0) return;
+    if (parsedRows.length === 0 || invalidRows.length > 0) return;
     setImporting(true);
 
     try {
@@ -466,6 +471,53 @@ export function ImportModal({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          {parsedRows.length === 0 && !result && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                  💡 Correct CSV Phone Format
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your CSV must contain a <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">phone</code> column. Numbers must include the country code (e.g. 91 for India) without a leading zero or plus sign.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-background p-3 rounded-lg border border-border/50 text-[11px]">
+                  <div className="space-y-1.5">
+                    <span className="text-emerald-500 font-semibold flex items-center gap-1">✓ Correct Examples</span>
+                    <ul className="list-disc pl-4 space-y-1 font-mono text-muted-foreground">
+                      <li>919876543210</li>
+                      <li>+919876543210 <span className="text-[10px] text-muted-foreground/60">(auto-cleaned to 919876543210)</span></li>
+                    </ul>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-red-400 font-semibold flex items-center gap-1">✗ Invalid Examples</span>
+                    <ul className="list-disc pl-4 space-y-1 font-mono text-muted-foreground">
+                      <li>09876543210 <span className="text-[10px] text-red-400/70">(remove leading zero)</span></li>
+                      <li>9876543210 <span className="text-[10px] text-red-400/70">(missing country code)</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {invalidRows.length > 0 && !result && (
+            <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-xs text-red-400 space-y-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 shrink-0 text-red-400" />
+                <p className="font-semibold text-sm">Cannot Import: {invalidRows.length} Invalid Phone Numbers Found</p>
+              </div>
+              <p className="text-muted-foreground">Please correct the phone numbers in your CSV file and try again. Numbers must include a country code without leading zero.</p>
+              <div className="max-h-36 overflow-y-auto rounded bg-background/50 border border-red-500/20 p-2 font-mono text-[11px] space-y-1 text-muted-foreground">
+                {invalidRows.map((row, idx) => (
+                  <div key={idx} className="flex justify-between border-b border-red-500/5 pb-1 last:border-0 last:pb-0">
+                    <span>Row {row.rowIndex + 1}: <span className="text-foreground">{row.phone}</span></span>
+                    <span className="text-red-400/80">{row.invalidPhone}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {preview.length > 0 && !result && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -609,7 +661,7 @@ export function ImportModal({
           {!result && (
             <Button
               type="button"
-              disabled={parsedRows.length === 0 || importing}
+              disabled={parsedRows.length === 0 || importing || invalidRows.length > 0}
               onClick={handleImport}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >

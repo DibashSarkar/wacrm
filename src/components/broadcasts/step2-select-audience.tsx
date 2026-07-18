@@ -94,9 +94,11 @@ export function Step2SelectAudience({
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvInvalidRows, setCsvInvalidRows] = useState<any[]>([]);
 
   useEffect(() => {
     setCsvError(null);
+    setCsvInvalidRows([]);
   }, [audience.type]);
 
   // Tags are used both by the primary "Filter by Tags" audience type
@@ -251,6 +253,7 @@ export function Step2SelectAudience({
       if (!file) return;
 
       setCsvError(null);
+      setCsvInvalidRows([]);
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target?.result as string;
@@ -260,9 +263,19 @@ export function Step2SelectAudience({
         }
 
         try {
-          const { rows } = parseContactCsv(text);
+          const { rows, invalidRows } = parseContactCsv(text);
           if (rows.length === 0) {
             setCsvError(t('selectAudience.errorCsvMissingPhone'));
+            return;
+          }
+
+          if (invalidRows.length > 0) {
+            setCsvInvalidRows(invalidRows);
+            setCsvError(`CSV contains ${invalidRows.length} invalid phone numbers. Please correct them and re-upload.`);
+            onUpdate({
+              ...audience,
+              csvContacts: undefined,
+            });
             return;
           }
 
@@ -295,7 +308,8 @@ export function Step2SelectAudience({
       audience.customField.value.length > 0) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
-      audience.csvContacts.length > 0);
+      audience.csvContacts.length > 0 &&
+      csvInvalidRows.length === 0);
 
   return (
     <div className="space-y-6">
@@ -441,16 +455,60 @@ export function Step2SelectAudience({
       )}
 
       {audience.type === 'csv' && (
-        <div className="space-y-3 rounded-xl border border-border bg-card/50 p-4">
-          <p className="text-sm font-medium text-foreground">{t('selectAudience.uploadCsv')}</p>
-          <p className="text-xs text-muted-foreground">
-            {t('selectAudience.csvFormatDesc')}
-          </p>
+        <div className="space-y-4 rounded-xl border border-border bg-card/50 p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">{t('selectAudience.uploadCsv')}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t('selectAudience.csvFormatDesc')}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border/80 bg-muted/20 p-3 text-xs text-muted-foreground space-y-2">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              💡 Correct CSV Phone Format
+            </p>
+            <p className="text-[11px]">
+              CSV requires a <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">phone</code> column. Numbers must include the country code (e.g. 91) without a leading zero or + prefix.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-background/50 p-2.5 rounded-md border border-border/50 text-[10px]">
+              <div>
+                <span className="text-emerald-500 font-semibold">✓ Correct Examples</span>
+                <ul className="list-disc pl-3.5 mt-0.5 space-y-0.5 font-mono text-muted-foreground">
+                  <li>919876543210</li>
+                  <li>+919876543210 (auto-cleans)</li>
+                </ul>
+              </div>
+              <div>
+                <span className="text-red-400 font-semibold">✗ Invalid Examples</span>
+                <ul className="list-disc pl-3.5 mt-0.5 space-y-0.5 font-mono text-muted-foreground">
+                  <li>09876543210 (remove domestic zero)</li>
+                  <li>9876543210 (missing country code)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
           {csvError && (
             <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{csvError}</span>
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">Upload Failed</p>
+                <p className="text-red-400/90">{csvError}</p>
+              </div>
+            </div>
+          )}
+
+          {csvInvalidRows.length > 0 && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-400 space-y-2">
+              <p className="font-semibold">Invalid Rows Found ({csvInvalidRows.length}):</p>
+              <div className="max-h-28 overflow-y-auto rounded bg-background/40 border border-red-500/10 p-2 font-mono text-[10px] space-y-1 text-muted-foreground">
+                {csvInvalidRows.map((row, idx) => (
+                  <div key={idx} className="flex justify-between border-b border-red-500/5 pb-0.5 last:border-0 last:pb-0">
+                    <span>Row {row.rowIndex + 1}: <span className="text-foreground">{row.phone}</span></span>
+                    <span className="text-red-400">{row.invalidPhone}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -466,7 +524,11 @@ export function Step2SelectAudience({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => onUpdate({ ...audience, csvContacts: undefined })}
+                onClick={() => {
+                  onUpdate({ ...audience, csvContacts: undefined });
+                  setCsvInvalidRows([]);
+                  setCsvError(null);
+                }}
                 className="h-8 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/20"
               >
                 <X className="mr-1 h-3 w-3" />

@@ -146,8 +146,8 @@ export function Step4ScheduleSend({
 
       {/* Processing overlay */}
       {isProcessing && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <p className="text-sm font-medium text-foreground">{t('scheduleSend.sending')}</p>
@@ -160,6 +160,9 @@ export function Step4ScheduleSend({
               style={{ width: `${progress}%` }}
             />
           </div>
+          <p className="text-xs text-amber-500 font-medium">
+            Please keep this tab open until the broadcast is 100% complete. Navigating away or closing the tab will stop the broadcast.
+          </p>
         </div>
       )}
 

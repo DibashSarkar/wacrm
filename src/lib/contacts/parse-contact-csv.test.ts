@@ -35,20 +35,23 @@ describe('parseContactCsv', () => {
       hasCompanyColumn: false,
       rows: [
         {
-          phone: '+15551234567',
+          phone: '15551234567',
           name: 'Alice',
           email: undefined,
           company: undefined,
           tagNames: ['VIP', 'Lead'],
+          rowIndex: 1,
         },
         {
-          phone: '+15559876543',
+          phone: '15559876543',
           name: 'Bob',
           email: undefined,
           company: undefined,
           tagNames: ['Customer'],
+          rowIndex: 2,
         },
       ],
+      invalidRows: [],
     });
   });
 
@@ -61,13 +64,15 @@ describe('parseContactCsv', () => {
       hasCompanyColumn: false,
       rows: [
         {
-          phone: '+15551234567',
+          phone: '15551234567',
           name: 'Alice',
           email: undefined,
           company: undefined,
           tagNames: [],
+          rowIndex: 1,
         },
       ],
+      invalidRows: [],
     });
   });
 });
